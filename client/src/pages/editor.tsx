@@ -100,34 +100,31 @@ function TitleInput({
   onChange: (v: string) => void;
   icon?: string | null;
 }) {
-  const [localValue, setLocalValue] = useState(value);
-  const inputRef = useRef<HTMLDivElement>(null);
+  const [localValue, setLocalValue] = useState(value === "Untitled" ? "" : value);
 
   useEffect(() => {
-    setLocalValue(value);
+    setLocalValue(value === "Untitled" ? "" : value);
   }, [value]);
 
-  const handleInput = () => {
-    const text = inputRef.current?.textContent || "";
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const text = e.target.value;
     setLocalValue(text);
-    onChange(text);
+    onChange(text || "Untitled");
   };
 
   return (
     <div className="mb-2">
       {icon && <span className="text-5xl mb-4 block" data-testid="doc-icon">{icon}</span>}
-      <div
-        ref={inputRef}
-        contentEditable
-        suppressContentEditableWarning
-        className="text-[40px] font-bold leading-tight outline-none text-foreground placeholder-shown:text-muted-foreground break-words"
+      <input
+        type="text"
+        value={localValue}
+        onChange={handleChange}
+        placeholder="Untitled"
+        dir="ltr"
+        className="w-full text-[40px] font-bold leading-tight outline-none text-foreground bg-transparent placeholder:text-muted-foreground/40 border-none p-0"
         style={{ fontWeight: 700, letterSpacing: "-0.02em", lineHeight: 1.2 }}
-        data-placeholder="Untitled"
-        onInput={handleInput}
         data-testid="input-title"
-      >
-        {localValue === "Untitled" ? "" : localValue}
-      </div>
+      />
     </div>
   );
 }

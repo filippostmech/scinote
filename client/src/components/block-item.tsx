@@ -194,6 +194,7 @@ export const BlockItem = forwardRef<HTMLDivElement, BlockItemProps>(
                 ref={contentRef}
                 contentEditable
                 suppressContentEditableWarning
+                dir="ltr"
                 className={`flex-1 outline-none ${blockStyles}`}
                 data-placeholder={placeholder}
                 onInput={handleInput}
@@ -211,6 +212,7 @@ export const BlockItem = forwardRef<HTMLDivElement, BlockItemProps>(
                   ref={contentRef}
                   contentEditable
                   suppressContentEditableWarning
+                  dir="ltr"
                   className={`outline-none block whitespace-pre-wrap font-mono text-sm leading-relaxed ${blockStyles}`}
                   data-placeholder={placeholder}
                   onInput={handleInput}
@@ -228,6 +230,7 @@ export const BlockItem = forwardRef<HTMLDivElement, BlockItemProps>(
                 ref={contentRef}
                 contentEditable
                 suppressContentEditableWarning
+                dir="ltr"
                 className={`outline-none ${blockStyles}`}
                 data-placeholder={placeholder}
                 onInput={handleInput}
@@ -245,6 +248,7 @@ export const BlockItem = forwardRef<HTMLDivElement, BlockItemProps>(
                 ref={contentRef}
                 contentEditable
                 suppressContentEditableWarning
+                dir="ltr"
                 className={`flex-1 outline-none ${blockStyles}`}
                 data-placeholder={placeholder}
                 onInput={handleInput}
@@ -262,6 +266,7 @@ export const BlockItem = forwardRef<HTMLDivElement, BlockItemProps>(
                 ref={contentRef}
                 contentEditable
                 suppressContentEditableWarning
+                dir="ltr"
                 className={`flex-1 outline-none ${blockStyles}`}
                 data-placeholder={placeholder}
                 onInput={handleInput}
@@ -277,6 +282,7 @@ export const BlockItem = forwardRef<HTMLDivElement, BlockItemProps>(
               ref={contentRef}
               contentEditable
               suppressContentEditableWarning
+              dir="ltr"
               className={`outline-none ${blockStyles}`}
               data-placeholder={placeholder}
               onInput={handleInput}
