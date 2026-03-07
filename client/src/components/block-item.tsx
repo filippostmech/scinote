@@ -1,6 +1,6 @@
 import { forwardRef, useRef, useCallback, useState, useEffect } from "react";
 import type { Block } from "@shared/schema";
-import { GripVertical, Plus, Trash2, Type, Heading1, Heading2, Heading3, List, ListOrdered, Code2, Quote, Minus, MessageSquare } from "lucide-react";
+import { GripVertical, Plus, Trash2, Type, Heading1, Heading2, Heading3, List, ListOrdered, Code2, Quote, Minus, MessageSquare, Table2, ImageIcon, Upload } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -8,6 +8,7 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
+import { TableBlock } from "./table-block";
 
 interface BlockItemProps {
   block: Block;
@@ -16,11 +17,14 @@ interface BlockItemProps {
   isFocused: boolean;
   isDragging: boolean;
   isDragOver: boolean;
+  dropPosition: "above" | "below" | null;
   onFocus: () => void;
   onChange: (content: string) => void;
+  onMetaChange: (meta: Record<string, any>) => void;
   onKeyDown: (e: React.KeyboardEvent) => void;
   onSlashCommand: (position: { x: number; y: number }) => void;
   onSlashFilter: (filter: string) => void;
+  onMarkdownShortcut: (type: Block["type"], content: string) => void;
   onAddBlock: () => void;
   onDeleteBlock: () => void;
   onChangeType: (type: Block["type"]) => void;
@@ -41,6 +45,8 @@ const blockTypeIcons: Record<Block["type"], typeof Type> = {
   quote: Quote,
   divider: Minus,
   callout: MessageSquare,
+  table: Table2,
+  image: ImageIcon,
 };
 
 const blockTypeLabels: Record<Block["type"], string> = {
@@ -54,7 +60,20 @@ const blockTypeLabels: Record<Block["type"], string> = {
   quote: "Quote",
   divider: "Divider",
   callout: "Callout",
+  table: "Table",
+  image: "Image",
 };
+
+const markdownPatterns: { pattern: RegExp; type: Block["type"] }[] = [
+  { pattern: /^### $/, type: "heading3" },
+  { pattern: /^## $/, type: "heading2" },
+  { pattern: /^# $/, type: "heading1" },
+  { pattern: /^[-*] $/, type: "bulleted-list" },
+  { pattern: /^1\. $/, type: "numbered-list" },
+  { pattern: /^> $/, type: "quote" },
+  { pattern: /^---$/, type: "divider" },
+  { pattern: /^```$/, type: "code" },
+];
 
 export const BlockItem = forwardRef<HTMLDivElement, BlockItemProps>(
   (
@@ -65,11 +84,14 @@ export const BlockItem = forwardRef<HTMLDivElement, BlockItemProps>(
       isFocused,
       isDragging,
       isDragOver,
+      dropPosition,
       onFocus,
       onChange,
+      onMetaChange,
       onKeyDown,
       onSlashCommand,
       onSlashFilter,
+      onMarkdownShortcut,
       onAddBlock,
       onDeleteBlock,
       onChangeType,
@@ -85,7 +107,7 @@ export const BlockItem = forwardRef<HTMLDivElement, BlockItemProps>(
     const slashActiveRef = useRef(false);
 
     useEffect(() => {
-      if (contentRef.current && block.type !== "divider") {
+      if (contentRef.current && block.type !== "divider" && block.type !== "table" && block.type !== "image") {
         if (contentRef.current.innerHTML !== block.content) {
           contentRef.current.innerHTML = block.content;
         }
@@ -97,6 +119,16 @@ export const BlockItem = forwardRef<HTMLDivElement, BlockItemProps>(
       const html = contentRef.current.innerHTML;
       const text = contentRef.current.textContent || "";
       onChange(html);
+
+      if (block.type === "text") {
+        for (const { pattern, type } of markdownPatterns) {
+          if (pattern.test(text)) {
+            contentRef.current.innerHTML = "";
+            onMarkdownShortcut(type, "");
+            return;
+          }
+        }
+      }
 
       const slashMatch = text.match(/\/([^\s]*)$/);
       if (slashMatch) {
@@ -111,7 +143,7 @@ export const BlockItem = forwardRef<HTMLDivElement, BlockItemProps>(
       } else if (slashActiveRef.current) {
         slashActiveRef.current = false;
       }
-    }, [onChange, onSlashCommand, onSlashFilter]);
+    }, [onChange, onSlashCommand, onSlashFilter, onMarkdownShortcut, block.type]);
 
     const handleKeyDown = useCallback(
       (e: React.KeyboardEvent) => {
@@ -122,6 +154,68 @@ export const BlockItem = forwardRef<HTMLDivElement, BlockItemProps>(
           }
           return;
         }
+
+        const isMod = e.ctrlKey || e.metaKey;
+        if (isMod && e.key === "b") {
+          e.preventDefault();
+          document.execCommand("bold", false);
+          return;
+        }
+        if (isMod && e.key === "i") {
+          e.preventDefault();
+          document.execCommand("italic", false);
+          return;
+        }
+        if (isMod && e.key === "u") {
+          e.preventDefault();
+          document.execCommand("underline", false);
+          return;
+        }
+        if (isMod && e.shiftKey && e.key === "S") {
+          e.preventDefault();
+          document.execCommand("strikeThrough", false);
+          return;
+        }
+        if (isMod && e.key === "e") {
+          e.preventDefault();
+          const sel = window.getSelection();
+          if (sel && !sel.isCollapsed && sel.rangeCount > 0) {
+            const range = sel.getRangeAt(0);
+            const text = range.toString();
+            const codeEl = document.createElement("code");
+            codeEl.className = "px-1.5 py-0.5 rounded bg-[#F7F6F3] dark:bg-[#2d2d2d] font-mono text-sm text-[#EB5757]";
+            codeEl.textContent = text;
+            range.deleteContents();
+            range.insertNode(codeEl);
+          }
+          return;
+        }
+        if (isMod && e.shiftKey && e.key === "H") {
+          e.preventDefault();
+          const sel = window.getSelection();
+          if (sel && !sel.isCollapsed && sel.rangeCount > 0) {
+            const range = sel.getRangeAt(0);
+            const text = range.toString();
+            const mark = document.createElement("mark");
+            mark.className = "bg-yellow-200/60 dark:bg-yellow-500/30 rounded px-0.5";
+            mark.textContent = text;
+            range.deleteContents();
+            range.insertNode(mark);
+          }
+          return;
+        }
+        if (isMod && e.key === "k") {
+          e.preventDefault();
+          const sel = window.getSelection();
+          if (sel && !sel.isCollapsed) {
+            const url = prompt("Enter URL:");
+            if (url) {
+              document.execCommand("createLink", false, url);
+            }
+          }
+          return;
+        }
+
         onKeyDown(e);
       },
       [onKeyDown, block.type],
@@ -135,12 +229,125 @@ export const BlockItem = forwardRef<HTMLDivElement, BlockItemProps>(
       }
     }, [block.type]);
 
+    const handleImageUpload = useCallback(() => {
+      const input = document.createElement("input");
+      input.type = "file";
+      input.accept = "image/*";
+      input.onchange = (e) => {
+        const file = (e.target as HTMLInputElement).files?.[0];
+        if (!file) return;
+        if (file.size > 5 * 1024 * 1024) {
+          alert("Image must be smaller than 5 MB");
+          return;
+        }
+        const reader = new FileReader();
+        reader.onload = () => {
+          const dataUrl = reader.result as string;
+          onChange(dataUrl);
+          onMetaChange({ ...block.meta, caption: block.meta?.caption || "" });
+        };
+        reader.readAsDataURL(file);
+      };
+      input.click();
+    }, [onChange, onMetaChange, block.meta]);
+
+    const dropIndicatorClass = isDragOver && dropPosition
+      ? dropPosition === "above"
+        ? "before:absolute before:top-0 before:left-0 before:right-0 before:h-0.5 before:bg-[#2EAADC] before:rounded-full"
+        : "after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-[#2EAADC] after:rounded-full"
+      : "";
+
+    if (block.type === "image") {
+      return (
+        <div
+          ref={ref}
+          data-block-id={block.id}
+          className={`group relative flex items-start py-2 ${dropIndicatorClass} ${isDragging ? "opacity-30" : ""}`}
+          onMouseEnter={() => setIsHovered(true)}
+          onMouseLeave={() => setIsHovered(false)}
+          onDragOver={onDragOver}
+          onDrop={onDrop}
+          data-testid={`block-image-${index}`}
+        >
+          <BlockControls
+            isVisible={isHovered}
+            onAddBlock={onAddBlock}
+            onDeleteBlock={onDeleteBlock}
+            onChangeType={onChangeType}
+            onDragStart={onDragStart}
+            onDragEnd={onDragEnd}
+            blockType={block.type}
+          />
+          <div className="flex-1 ml-1">
+            {block.content ? (
+              <div className="my-2">
+                <img
+                  src={block.content}
+                  alt={block.meta?.caption || "Image"}
+                  className="max-w-full rounded-md"
+                  data-testid={`image-display-${index}`}
+                />
+                <input
+                  type="text"
+                  value={block.meta?.caption || ""}
+                  onChange={(e) => onMetaChange({ ...block.meta, caption: e.target.value })}
+                  placeholder="Add a caption..."
+                  className="w-full mt-2 text-sm text-muted-foreground bg-transparent outline-none border-none placeholder:text-muted-foreground/40"
+                  data-testid={`input-caption-${index}`}
+                />
+              </div>
+            ) : (
+              <button
+                onClick={handleImageUpload}
+                className="w-full flex items-center justify-center gap-2 py-8 border border-dashed border-border rounded-md text-muted-foreground/60 transition-colors hover-elevate"
+                data-testid={`button-upload-image-${index}`}
+              >
+                <Upload className="w-5 h-5" />
+                <span className="text-sm">Click to upload an image</span>
+              </button>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    if (block.type === "table") {
+      return (
+        <div
+          ref={ref}
+          data-block-id={block.id}
+          className={`group relative flex items-start ${dropIndicatorClass} ${isDragging ? "opacity-30" : ""}`}
+          onMouseEnter={() => setIsHovered(true)}
+          onMouseLeave={() => setIsHovered(false)}
+          onDragOver={onDragOver}
+          onDrop={onDrop}
+          data-testid={`block-table-${index}`}
+        >
+          <BlockControls
+            isVisible={isHovered}
+            onAddBlock={onAddBlock}
+            onDeleteBlock={onDeleteBlock}
+            onChangeType={onChangeType}
+            onDragStart={onDragStart}
+            onDragEnd={onDragEnd}
+            blockType={block.type}
+          />
+          <div className="flex-1 ml-1">
+            <TableBlock
+              meta={block.meta}
+              onMetaChange={(meta) => onMetaChange(meta)}
+            />
+          </div>
+        </div>
+      );
+    }
+
     if (block.type === "divider") {
       return (
         <div
           ref={ref}
           data-block-id={block.id}
-          className={`group relative flex items-center py-2 ${isDragOver ? "border-t-2 border-blue-400" : ""} ${isDragging ? "opacity-30" : ""}`}
+          className={`group relative flex items-center py-2 ${dropIndicatorClass} ${isDragging ? "opacity-30" : ""}`}
           onMouseEnter={() => setIsHovered(true)}
           onMouseLeave={() => setIsHovered(false)}
           onDragOver={onDragOver}
@@ -170,7 +377,7 @@ export const BlockItem = forwardRef<HTMLDivElement, BlockItemProps>(
       <div
         ref={ref}
         data-block-id={block.id}
-        className={`group relative flex items-start ${isDragOver ? "border-t-2 border-blue-400" : ""} ${isDragging ? "opacity-30" : ""}`}
+        className={`group relative flex items-start ${dropIndicatorClass} ${isDragging ? "opacity-30 scale-[0.98] transition-transform" : "transition-transform"}`}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
         onDragOver={onDragOver}

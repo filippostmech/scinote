@@ -10,6 +10,7 @@ const updateDocumentSchema = z.object({
   icon: z.string().nullable().optional(),
   coverColor: z.string().nullable().optional(),
   sortOrder: z.number().optional(),
+  isFavorite: z.boolean().optional(),
 });
 
 export async function registerRoutes(
@@ -18,6 +19,15 @@ export async function registerRoutes(
 ): Promise<Server> {
   app.get("/api/documents", async (_req, res) => {
     const docs = await storage.getDocuments();
+    res.json(docs);
+  });
+
+  app.get("/api/documents/search", async (req, res) => {
+    const q = (req.query.q as string) || "";
+    if (!q.trim()) {
+      return res.json([]);
+    }
+    const docs = await storage.searchDocuments(q.trim());
     res.json(docs);
   });
 
@@ -36,6 +46,22 @@ export async function registerRoutes(
     }
     const doc = await storage.createDocument(parsed.data);
     res.status(201).json(doc);
+  });
+
+  app.post("/api/documents/:id/duplicate", async (req, res) => {
+    const doc = await storage.duplicateDocument(req.params.id);
+    if (!doc) {
+      return res.status(404).json({ message: "Document not found" });
+    }
+    res.status(201).json(doc);
+  });
+
+  app.post("/api/documents/:id/favorite", async (req, res) => {
+    const doc = await storage.toggleFavorite(req.params.id);
+    if (!doc) {
+      return res.status(404).json({ message: "Document not found" });
+    }
+    res.json(doc);
   });
 
   app.patch("/api/documents/:id", async (req, res) => {

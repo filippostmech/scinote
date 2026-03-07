@@ -24,6 +24,24 @@ function htmlToMarkdownInline(html: string): string {
   return text;
 }
 
+function tableToMarkdown(meta?: Record<string, any>): string {
+  if (!meta?.tableData || !Array.isArray(meta.tableData)) return "";
+  const data = meta.tableData as string[][];
+  if (data.length === 0) return "";
+
+  const lines: string[] = [];
+  const cols = data[0].length;
+
+  lines.push("| " + data[0].map((c) => c || " ").join(" | ") + " |");
+  lines.push("| " + Array(cols).fill("---").join(" | ") + " |");
+
+  for (let i = 1; i < data.length; i++) {
+    lines.push("| " + data[i].map((c) => c || " ").join(" | ") + " |");
+  }
+
+  return lines.join("\n");
+}
+
 export function blocksToMarkdown(title: string, blocks: Block[]): string {
   const lines: string[] = [];
 
@@ -87,6 +105,17 @@ export function blocksToMarkdown(title: string, blocks: Block[]): string {
       case "divider":
         lines.push("---");
         lines.push("");
+        break;
+      case "table":
+        lines.push(tableToMarkdown(block.meta));
+        lines.push("");
+        break;
+      case "image":
+        if (block.content) {
+          const caption = block.meta?.caption || "Image";
+          lines.push(`![${caption}](${block.content})`);
+          lines.push("");
+        }
         break;
       default:
         lines.push(content);

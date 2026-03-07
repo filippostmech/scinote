@@ -261,10 +261,8 @@
     pointer-events: none;
     position: absolute;
     inset: 0px;
-    /*border-radius: inherit;   match rounded corners */
     border-radius: inherit;
     z-index: 999;
-    /* sits in front of content */
   }
 
   .hover-elevate:hover:not(.no-default-hover-elevate)::after,
@@ -284,5 +282,27 @@
   .border.active-elevate-2:not(.no-active-interaction-elevate)::after,
   .border.hover-elevate:not(.no-hover-interaction-elevate)::after {
     inset: -1px;
+  }
+}
+
+@media print {
+  body {
+    background: white !important;
+    color: black !important;
+  }
+
+  [data-testid="doc-sidebar"],
+  [data-testid="editor-status-bar"],
+  .print\\:hidden {
+    display: none !important;
+  }
+
+  .print-content {
+    overflow: visible !important;
+    height: auto !important;
+  }
+
+  [data-testid="editor-page"] {
+    height: auto !important;
   }
 }

@@ -8,9 +8,11 @@ function generateId() {
   return Math.random().toString(36).substr(2, 9);
 }
 
-function createBlock(type: Block["type"] = "text", content = ""): Block {
-  return { id: generateId(), type, content };
+function createBlock(type: Block["type"] = "text", content = "", meta?: Record<string, any>): Block {
+  return { id: generateId(), type, content, meta };
 }
+
+const MAX_HISTORY = 50;
 
 interface BlockEditorProps {
   blocks: Block[];
@@ -33,9 +35,14 @@ export function BlockEditor({ blocks: initialBlocks, onChange }: BlockEditorProp
   } | null>(null);
   const [draggedBlockId, setDraggedBlockId] = useState<string | null>(null);
   const [dragOverBlockId, setDragOverBlockId] = useState<string | null>(null);
+  const [dropPosition, setDropPosition] = useState<"above" | "below" | null>(null);
   const blockRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const editorRef = useRef<HTMLDivElement>(null);
   const initialBlocksRef = useRef(initialBlocks);
+
+  const historyRef = useRef<Block[][]>([]);
+  const futureRef = useRef<Block[][]>([]);
+  const isUndoRedoRef = useRef(false);
 
   useEffect(() => {
     if (JSON.stringify(initialBlocks) !== JSON.stringify(initialBlocksRef.current)) {
@@ -46,13 +53,80 @@ export function BlockEditor({ blocks: initialBlocks, onChange }: BlockEditorProp
     }
   }, [initialBlocks]);
 
+  const pushHistory = useCallback((prevBlocks: Block[]) => {
+    if (isUndoRedoRef.current) return;
+    historyRef.current = [...historyRef.current.slice(-(MAX_HISTORY - 1)), prevBlocks];
+    futureRef.current = [];
+  }, []);
+
   const updateBlocks = useCallback(
     (newBlocks: Block[]) => {
+      pushHistory(blocks);
       setBlocks(newBlocks);
       onChange(newBlocks);
     },
+    [onChange, blocks, pushHistory],
+  );
+
+  const contentSnapshotTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastSnapshotRef = useRef<string>("");
+
+  const updateBlocksSilent = useCallback(
+    (newBlocks: Block[]) => {
+      setBlocks(newBlocks);
+      onChange(newBlocks);
+
+      if (contentSnapshotTimer.current) {
+        clearTimeout(contentSnapshotTimer.current);
+      }
+      contentSnapshotTimer.current = setTimeout(() => {
+        const snapshot = JSON.stringify(newBlocks);
+        if (snapshot !== lastSnapshotRef.current) {
+          lastSnapshotRef.current = snapshot;
+          historyRef.current = [...historyRef.current.slice(-(MAX_HISTORY - 1)), newBlocks];
+          futureRef.current = [];
+        }
+      }, 500);
+    },
     [onChange],
   );
+
+  const undo = useCallback(() => {
+    if (historyRef.current.length === 0) return;
+    isUndoRedoRef.current = true;
+    const prev = historyRef.current[historyRef.current.length - 1];
+    historyRef.current = historyRef.current.slice(0, -1);
+    futureRef.current = [...futureRef.current, blocks];
+    setBlocks(prev);
+    onChange(prev);
+    isUndoRedoRef.current = false;
+  }, [blocks, onChange]);
+
+  const redo = useCallback(() => {
+    if (futureRef.current.length === 0) return;
+    isUndoRedoRef.current = true;
+    const next = futureRef.current[futureRef.current.length - 1];
+    futureRef.current = futureRef.current.slice(0, -1);
+    historyRef.current = [...historyRef.current, blocks];
+    setBlocks(next);
+    onChange(next);
+    isUndoRedoRef.current = false;
+  }, [blocks, onChange]);
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === "z" && !e.shiftKey) {
+        e.preventDefault();
+        undo();
+      }
+      if ((e.ctrlKey || e.metaKey) && (e.key === "y" || (e.key === "z" && e.shiftKey))) {
+        e.preventDefault();
+        redo();
+      }
+    };
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  }, [undo, redo]);
 
   const focusBlock = useCallback((blockId: string, position: "start" | "end" = "end") => {
     setTimeout(() => {
@@ -84,7 +158,7 @@ export function BlockEditor({ blocks: initialBlocks, onChange }: BlockEditorProp
       const newBlocks = blocks.map((b) =>
         b.id === blockId ? { ...b, content } : b,
       );
-      updateBlocks(newBlocks);
+      updateBlocksSilent(newBlocks);
 
       if (slashMenu && slashMenu.blockId === blockId) {
         const textContent = content.replace(/<[^>]*>/g, "");
@@ -93,7 +167,30 @@ export function BlockEditor({ blocks: initialBlocks, onChange }: BlockEditorProp
         }
       }
     },
-    [blocks, updateBlocks, slashMenu],
+    [blocks, updateBlocksSilent, slashMenu],
+  );
+
+  const handleBlockMetaChange = useCallback(
+    (blockId: string, meta: Record<string, any>) => {
+      const newBlocks = blocks.map((b) =>
+        b.id === blockId ? { ...b, meta } : b,
+      );
+      updateBlocksSilent(newBlocks);
+    },
+    [blocks, updateBlocksSilent],
+  );
+
+  const handleMarkdownShortcut = useCallback(
+    (blockId: string, type: Block["type"], content: string) => {
+      pushHistory(blocks);
+      const newBlocks = blocks.map((b) =>
+        b.id === blockId ? { ...b, type, content } : b,
+      );
+      setBlocks(newBlocks);
+      onChange(newBlocks);
+      focusBlock(blockId, "start");
+    },
+    [blocks, onChange, focusBlock, pushHistory],
   );
 
   const handleKeyDown = useCallback(
@@ -104,7 +201,19 @@ export function BlockEditor({ blocks: initialBlocks, onChange }: BlockEditorProp
       if (e.key === "Enter" && !e.shiftKey) {
         if (slashMenu) return;
         e.preventDefault();
-        const newBlock = createBlock();
+
+        const listTypes: Block["type"][] = ["bulleted-list", "numbered-list"];
+        if (listTypes.includes(block.type) && !block.content.replace(/<[^>]*>/g, "").trim()) {
+          const newBlocks = blocks.map((b) =>
+            b.id === blockId ? { ...b, type: "text" as const, content: "" } : b,
+          );
+          updateBlocks(newBlocks);
+          focusBlock(blockId, "start");
+          return;
+        }
+
+        const newBlockType = listTypes.includes(block.type) ? block.type : "text";
+        const newBlock = createBlock(newBlockType);
         const newBlocks = [...blocks];
         newBlocks.splice(blockIndex + 1, 0, newBlock);
         updateBlocks(newBlocks);
@@ -180,20 +289,28 @@ export function BlockEditor({ blocks: initialBlocks, onChange }: BlockEditorProp
   const handleSlashSelect = useCallback(
     (type: Block["type"]) => {
       if (!slashMenu) return;
+      pushHistory(blocks);
       const newBlocks = blocks.map((b) => {
         if (b.id === slashMenu.blockId) {
           const cleanContent = b.content.replace(/\/[^\s]*$/, "").trim();
+          if (type === "table") {
+            return { ...b, type, content: "", meta: { tableData: [["", "", ""], ["", "", ""], ["", "", ""]] } };
+          }
+          if (type === "image") {
+            return { ...b, type, content: "", meta: {} };
+          }
           return { ...b, type, content: type === "divider" ? "" : cleanContent };
         }
         return b;
       });
-      updateBlocks(newBlocks);
+      setBlocks(newBlocks);
+      onChange(newBlocks);
       setSlashMenu(null);
-      if (type !== "divider") {
+      if (type !== "divider" && type !== "table" && type !== "image") {
         focusBlock(slashMenu.blockId, "start");
       }
     },
-    [slashMenu, blocks, updateBlocks, focusBlock],
+    [slashMenu, blocks, onChange, focusBlock, pushHistory],
   );
 
   const handleSlashClose = useCallback(() => {
@@ -246,6 +363,12 @@ export function BlockEditor({ blocks: initialBlocks, onChange }: BlockEditorProp
       e.preventDefault();
       if (blockId !== draggedBlockId) {
         setDragOverBlockId(blockId);
+        const el = blockRefs.current.get(blockId);
+        if (el) {
+          const rect = el.getBoundingClientRect();
+          const midY = rect.top + rect.height / 2;
+          setDropPosition(e.clientY < midY ? "above" : "below");
+        }
       }
     },
     [draggedBlockId],
@@ -256,23 +379,31 @@ export function BlockEditor({ blocks: initialBlocks, onChange }: BlockEditorProp
       if (!draggedBlockId || draggedBlockId === targetBlockId) {
         setDraggedBlockId(null);
         setDragOverBlockId(null);
+        setDropPosition(null);
         return;
       }
       const draggedIndex = blocks.findIndex((b) => b.id === draggedBlockId);
-      const targetIndex = blocks.findIndex((b) => b.id === targetBlockId);
+      let targetIndex = blocks.findIndex((b) => b.id === targetBlockId);
       const newBlocks = [...blocks];
       const [removed] = newBlocks.splice(draggedIndex, 1);
+      if (dropPosition === "below") {
+        targetIndex = draggedIndex < targetIndex ? targetIndex : targetIndex + 1;
+      } else {
+        targetIndex = draggedIndex < targetIndex ? targetIndex - 1 : targetIndex;
+      }
       newBlocks.splice(targetIndex, 0, removed);
       updateBlocks(newBlocks);
       setDraggedBlockId(null);
       setDragOverBlockId(null);
+      setDropPosition(null);
     },
-    [draggedBlockId, blocks, updateBlocks],
+    [draggedBlockId, blocks, updateBlocks, dropPosition],
   );
 
   const handleDragEnd = useCallback(() => {
     setDraggedBlockId(null);
     setDragOverBlockId(null);
+    setDropPosition(null);
   }, []);
 
   const handleAddBlock = useCallback(
@@ -340,11 +471,14 @@ export function BlockEditor({ blocks: initialBlocks, onChange }: BlockEditorProp
           isFocused={focusedBlockId === block.id}
           isDragging={draggedBlockId === block.id}
           isDragOver={dragOverBlockId === block.id}
+          dropPosition={dragOverBlockId === block.id ? dropPosition : null}
           onFocus={() => setFocusedBlockId(block.id)}
           onChange={(content) => handleBlockChange(block.id, content)}
+          onMetaChange={(meta) => handleBlockMetaChange(block.id, meta)}
           onKeyDown={(e) => handleKeyDown(block.id, e)}
           onSlashCommand={(pos) => handleSlashCommand(block.id, pos)}
           onSlashFilter={handleSlashFilter}
+          onMarkdownShortcut={(type, content) => handleMarkdownShortcut(block.id, type, content)}
           onAddBlock={() => handleAddBlock(block.id)}
           onDeleteBlock={() => handleDeleteBlock(block.id)}
           onChangeType={(type) => handleChangeType(block.id, type)}

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import type { Block } from "@shared/schema";
-import { Type, Heading1, Heading2, Heading3, List, ListOrdered, Code2, Quote, Minus, MessageSquare } from "lucide-react";
+import { Type, Heading1, Heading2, Heading3, List, ListOrdered, Code2, Quote, Minus, MessageSquare, Table2, ImageIcon } from "lucide-react";
 
 interface SlashCommandMenuProps {
   position: { x: number; y: number };
@@ -15,17 +15,20 @@ const commands: {
   description: string;
   icon: typeof Type;
   keywords: string[];
+  category: string;
 }[] = [
-  { type: "text", label: "Text", description: "Plain text block", icon: Type, keywords: ["paragraph", "p", "text"] },
-  { type: "heading1", label: "Heading 1", description: "Large section heading", icon: Heading1, keywords: ["h1", "heading", "title"] },
-  { type: "heading2", label: "Heading 2", description: "Medium section heading", icon: Heading2, keywords: ["h2", "heading", "subtitle"] },
-  { type: "heading3", label: "Heading 3", description: "Small section heading", icon: Heading3, keywords: ["h3", "heading"] },
-  { type: "bulleted-list", label: "Bulleted List", description: "Unordered list item", icon: List, keywords: ["ul", "bullet", "list", "unordered"] },
-  { type: "numbered-list", label: "Numbered List", description: "Ordered list item", icon: ListOrdered, keywords: ["ol", "number", "list", "ordered"] },
-  { type: "code", label: "Code", description: "Code block with syntax", icon: Code2, keywords: ["code", "pre", "snippet", "programming"] },
-  { type: "quote", label: "Quote", description: "Blockquote for citations", icon: Quote, keywords: ["quote", "blockquote", "citation"] },
-  { type: "callout", label: "Callout", description: "Highlighted info block", icon: MessageSquare, keywords: ["callout", "info", "note", "warning"] },
-  { type: "divider", label: "Divider", description: "Horizontal rule separator", icon: Minus, keywords: ["divider", "hr", "line", "separator"] },
+  { type: "text", label: "Text", description: "Plain text block", icon: Type, keywords: ["paragraph", "p", "text"], category: "Basic" },
+  { type: "heading1", label: "Heading 1", description: "Large section heading", icon: Heading1, keywords: ["h1", "heading", "title"], category: "Basic" },
+  { type: "heading2", label: "Heading 2", description: "Medium section heading", icon: Heading2, keywords: ["h2", "heading", "subtitle"], category: "Basic" },
+  { type: "heading3", label: "Heading 3", description: "Small section heading", icon: Heading3, keywords: ["h3", "heading"], category: "Basic" },
+  { type: "bulleted-list", label: "Bulleted List", description: "Unordered list item", icon: List, keywords: ["ul", "bullet", "list", "unordered"], category: "Basic" },
+  { type: "numbered-list", label: "Numbered List", description: "Ordered list item", icon: ListOrdered, keywords: ["ol", "number", "list", "ordered"], category: "Basic" },
+  { type: "code", label: "Code", description: "Code block with syntax", icon: Code2, keywords: ["code", "pre", "snippet", "programming"], category: "Basic" },
+  { type: "quote", label: "Quote", description: "Blockquote for citations", icon: Quote, keywords: ["quote", "blockquote", "citation"], category: "Basic" },
+  { type: "callout", label: "Callout", description: "Highlighted info block", icon: MessageSquare, keywords: ["callout", "info", "note", "warning"], category: "Basic" },
+  { type: "divider", label: "Divider", description: "Horizontal rule separator", icon: Minus, keywords: ["divider", "hr", "line", "separator"], category: "Basic" },
+  { type: "table", label: "Table", description: "Table for structured data", icon: Table2, keywords: ["table", "grid", "data", "spreadsheet", "rows", "columns"], category: "Advanced" },
+  { type: "image", label: "Image", description: "Upload an image or figure", icon: ImageIcon, keywords: ["image", "picture", "photo", "figure", "diagram", "upload"], category: "Advanced" },
 ];
 
 export function SlashCommandMenu({ position, filter, onSelect, onClose }: SlashCommandMenuProps) {
@@ -103,6 +106,9 @@ export function SlashCommandMenu({ position, filter, onSelect, onClose }: SlashC
     );
   }
 
+  const categories = [...new Set(filteredCommands.map((c) => c.category))];
+  let globalIndex = 0;
+
   return (
     <div
       ref={menuRef}
@@ -110,32 +116,40 @@ export function SlashCommandMenu({ position, filter, onSelect, onClose }: SlashC
       style={{ left: position.x, top: position.y }}
       data-testid="slash-menu"
     >
-      <div className="px-2 py-1.5">
-        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Basic blocks</p>
-      </div>
-      {filteredCommands.map((cmd, i) => {
-        const Icon = cmd.icon;
+      {categories.map((cat) => {
+        const catCommands = filteredCommands.filter((c) => c.category === cat);
         return (
-          <button
-            key={cmd.type}
-            ref={(el: HTMLButtonElement | null) => {
-              if (el) itemRefs.current.set(i, el);
-            }}
-            className={`w-full flex items-center gap-3 px-2 py-2 text-left rounded-md transition-colors duration-100 ${
-              i === selectedIndex ? "bg-accent" : ""
-            }`}
-            onClick={() => onSelect(cmd.type)}
-            onMouseEnter={() => setSelectedIndex(i)}
-            data-testid={`slash-cmd-${cmd.type}`}
-          >
-            <div className="w-10 h-10 rounded-md border border-border flex items-center justify-center bg-background shrink-0">
-              <Icon className="w-5 h-5 text-foreground/70" />
+          <div key={cat}>
+            <div className="px-2 py-1.5">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{cat} blocks</p>
             </div>
-            <div className="min-w-0">
-              <p className="text-sm font-medium text-foreground">{cmd.label}</p>
-              <p className="text-xs text-muted-foreground truncate">{cmd.description}</p>
-            </div>
-          </button>
+            {catCommands.map((cmd) => {
+              const Icon = cmd.icon;
+              const idx = globalIndex++;
+              return (
+                <button
+                  key={cmd.type}
+                  ref={(el: HTMLButtonElement | null) => {
+                    if (el) itemRefs.current.set(idx, el);
+                  }}
+                  className={`w-full flex items-center gap-3 px-2 py-2 text-left rounded-md transition-colors duration-100 ${
+                    idx === selectedIndex ? "bg-accent" : ""
+                  }`}
+                  onClick={() => onSelect(cmd.type)}
+                  onMouseEnter={() => setSelectedIndex(idx)}
+                  data-testid={`slash-cmd-${cmd.type}`}
+                >
+                  <div className="w-10 h-10 rounded-md border border-border flex items-center justify-center bg-background shrink-0">
+                    <Icon className="w-5 h-5 text-foreground/70" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-foreground">{cmd.label}</p>
+                    <p className="text-xs text-muted-foreground truncate">{cmd.description}</p>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
         );
       })}
     </div>

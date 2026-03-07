@@ -1,15 +1,22 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, useMemo } from "react";
 import { useRoute } from "wouter";
 import type { Document, Block } from "@shared/schema";
 import { BlockEditor } from "@/components/block-editor";
-import { Loader2, Download } from "lucide-react";
+import { Loader2, Download, FileText, ChevronDown } from "lucide-react";
 import { downloadMarkdown } from "@/lib/export";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export default function EditorPage() {
   const [, params] = useRoute("/doc/:id");
   const docId = params?.id;
+  const [localBlocks, setLocalBlocks] = useState<Block[] | null>(null);
 
   const { data: doc, isLoading } = useQuery<Document>({
     queryKey: ["/api/documents", docId],
@@ -30,6 +37,7 @@ export default function EditorPage() {
 
   const handleBlocksChange = useCallback(
     (blocks: Block[]) => {
+      setLocalBlocks(blocks);
       if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
       saveTimeoutRef.current = setTimeout(() => {
         updateMutation.mutate({ blocks });
@@ -48,17 +56,45 @@ export default function EditorPage() {
     [updateMutation],
   );
 
-  const handleDownload = useCallback(() => {
+  const handleDownloadMd = useCallback(() => {
     if (!doc) return;
-    const blocks = (doc.blocks as Block[]) || [];
+    const blocks = (localBlocks || doc.blocks as Block[]) || [];
     downloadMarkdown(doc.title, blocks);
-  }, [doc]);
+  }, [doc, localBlocks]);
+
+  const handleDownloadPdf = useCallback(() => {
+    window.print();
+  }, []);
 
   useEffect(() => {
     return () => {
       if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
     };
   }, []);
+
+  useEffect(() => {
+    setLocalBlocks(null);
+  }, [docId]);
+
+  const currentBlocks = localBlocks || (doc?.blocks as Block[]) || [];
+
+  const stats = useMemo(() => {
+    const text = currentBlocks
+      .filter((b) => b.type !== "divider" && b.type !== "image")
+      .map((b) => {
+        if (b.type === "table" && b.meta?.tableData) {
+          return (b.meta.tableData as string[][]).flat().join(" ");
+        }
+        return b.content.replace(/<[^>]*>/g, "");
+      })
+      .join(" ")
+      .trim();
+
+    const words = text ? text.split(/\s+/).filter(Boolean).length : 0;
+    const chars = text.length;
+    const readingTime = Math.max(1, Math.ceil(words / 200));
+    return { words, chars, readingTime };
+  }, [currentBlocks]);
 
   if (isLoading) {
     return (
@@ -81,31 +117,52 @@ export default function EditorPage() {
   const blocks = (doc.blocks as Block[]) || [];
 
   return (
-    <div className="h-full overflow-y-auto" data-testid="editor-page">
-      <div className="max-w-[900px] mx-auto px-6 py-12 md:px-16">
-        <div className="flex items-start justify-between gap-4 mb-1">
-          <div className="flex-1 min-w-0">
-            <TitleInput
-              value={doc.title}
-              onChange={handleTitleChange}
-              icon={doc.icon}
-            />
+    <div className="h-full flex flex-col" data-testid="editor-page">
+      <div className="flex-1 overflow-y-auto print-content">
+        <div className="max-w-[900px] mx-auto px-6 py-12 md:px-16">
+          <div className="flex items-start justify-between gap-4 mb-1">
+            <div className="flex-1 min-w-0">
+              <TitleInput
+                value={doc.title}
+                onChange={handleTitleChange}
+                icon={doc.icon}
+              />
+            </div>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  className="mt-2 shrink-0 flex items-center gap-1.5 h-8 px-3 rounded-md text-sm text-muted-foreground transition-colors duration-150 hover-elevate print:hidden"
+                  title="Download options"
+                  data-testid="button-download"
+                >
+                  <Download className="w-4 h-4" />
+                  <ChevronDown className="w-3 h-3" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuItem onClick={handleDownloadMd} data-testid="button-download-md">
+                  <FileText className="w-4 h-4 mr-2" />
+                  Download as .md
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleDownloadPdf} data-testid="button-download-pdf">
+                  <FileText className="w-4 h-4 mr-2" />
+                  Print / Save as PDF
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
-          <button
-            onClick={handleDownload}
-            className="mt-2 shrink-0 flex items-center gap-1.5 h-8 px-3 rounded-md text-sm text-muted-foreground transition-colors duration-150 hover-elevate"
-            title="Download as Markdown"
-            data-testid="button-download-md"
-          >
-            <Download className="w-4 h-4" />
-            <span className="hidden sm:inline">.md</span>
-          </button>
+          <BlockEditor
+            blocks={blocks}
+            onChange={handleBlocksChange}
+          />
+          <div className="h-[40vh] print:hidden" />
         </div>
-        <BlockEditor
-          blocks={blocks}
-          onChange={handleBlocksChange}
-        />
-        <div className="h-[40vh]" />
+      </div>
+
+      <div className="shrink-0 border-t border-border/50 px-6 py-2 flex items-center justify-end gap-4 text-xs text-muted-foreground/50 print:hidden" data-testid="editor-status-bar">
+        <span data-testid="text-word-count">{stats.words} words</span>
+        <span data-testid="text-char-count">{stats.chars} characters</span>
+        <span data-testid="text-reading-time">{stats.readingTime} min read</span>
       </div>
     </div>
   );

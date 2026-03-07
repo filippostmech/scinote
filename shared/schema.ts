@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, jsonb, timestamp, integer } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, jsonb, timestamp, integer, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -16,6 +16,8 @@ export const blockSchema = z.object({
     "quote",
     "divider",
     "callout",
+    "table",
+    "image",
   ]),
   content: z.string(),
   meta: z.record(z.string(), z.any()).optional(),
@@ -29,6 +31,7 @@ export const documents = pgTable("documents", {
   blocks: jsonb("blocks").notNull().default(sql`'[]'::jsonb`),
   icon: text("icon"),
   coverColor: text("cover_color"),
+  isFavorite: boolean("is_favorite").default(false).notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   sortOrder: integer("sort_order").default(0),
