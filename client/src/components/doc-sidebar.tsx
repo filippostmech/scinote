@@ -106,8 +106,15 @@ export function DocSidebar() {
       <div className="w-[260px] h-full flex flex-col border-r border-border bg-[#FBFBFA] dark:bg-[#191919] shrink-0" data-testid="doc-sidebar">
         <div className="p-3 pb-2">
           <div className="flex items-center gap-2 px-2 mb-3">
-            <FlaskConical className="w-5 h-5 text-[#2EAADC]" />
-            <span className="text-sm font-semibold text-foreground tracking-tight flex-1">SciNote</span>
+            <button
+              onClick={() => setLocation("/")}
+              className="flex items-center gap-2 flex-1 min-w-0 cursor-pointer rounded-md transition-colors duration-150 hover-elevate"
+              data-testid="button-home"
+              title="Go to dashboard"
+            >
+              <FlaskConical className="w-5 h-5 text-[#2EAADC] shrink-0" />
+              <span className="text-sm font-semibold text-foreground tracking-tight">SciNote</span>
+            </button>
             <button
               onClick={toggleTheme}
               className="w-6 h-6 flex items-center justify-center rounded text-muted-foreground/60 transition-colors duration-150 hover-elevate"
