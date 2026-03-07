@@ -1,7 +1,7 @@
 # SciNote — Rich Text Editor for Scientists
 
 ## Overview
-A Notion-inspired block-based rich text editor built for scientists and R&D engineers. Features block-based content creation, slash commands, inline formatting, drag-and-drop reordering, dark mode, document search, favorites, templates, and export.
+A Notion-inspired block-based rich text editor built for scientists and R&D engineers. Features block-based content creation, slash commands, inline formatting, drag-and-drop reordering, dark mode, document search, favorites, templates, export, project/tag organization, dashboard with calendar/project views, and document version history.
 
 ## Architecture
 - **Frontend**: React + TypeScript with Vite, TailwindCSS, shadcn/ui components
@@ -14,29 +14,36 @@ A Notion-inspired block-based rich text editor built for scientists and R&D engi
 client/src/
   App.tsx              - Main app with ThemeProvider, sidebar + editor layout
   pages/
-    home.tsx           - Welcome page with quick-start templates and keyboard shortcuts
-    editor.tsx         - Document editor with word count, PDF/MD export
+    home.tsx           - Dashboard with calendar view, project view, recent docs, templates
+    editor.tsx         - Document editor with metadata bar, version history, status bar
   components/
-    doc-sidebar.tsx    - Document list with favorites, duplicate, search modal trigger
+    doc-sidebar.tsx    - Sidebar: favorites, project-grouped docs, tag filters, manage links
     block-editor.tsx   - Core block editor with undo/redo, smart list continuation
     block-item.tsx     - Individual block rendering with markdown shortcuts, keyboard formatting
-    slash-command-menu.tsx - "/" command palette with categories (Basic/Advanced blocks)
+    slash-command-menu.tsx - "/" command palette with categories
     inline-toolbar.tsx - Floating toolbar for text formatting
-    table-block.tsx    - Editable table component with add/remove rows/columns
+    table-block.tsx    - Editable table component
     search-modal.tsx   - Full-text search modal (Ctrl+P)
     theme-provider.tsx - Dark/light mode context provider
+    calendar-view.tsx  - Monthly calendar grid showing document activity
+    project-view.tsx   - Project cards with nested documents, create project
+    doc-card.tsx       - Reusable document card with project/tag/date display
+    doc-metadata.tsx   - Project selector, tag pills, created/modified dates
+    version-panel.tsx  - Slide-out version history with save/restore
+    project-manager.tsx - Modal to create/delete projects
+    tag-manager.tsx    - Modal to create/delete tags
   lib/
     export.ts          - Markdown export with table/image support
 
 server/
   index.ts             - Express server entry
-  routes.ts            - API routes: CRUD + search, duplicate, favorite toggle
-  storage.ts           - Database storage with search, duplicate, favorite methods
+  routes.ts            - API routes: documents, projects, tags, versions
+  storage.ts           - Database storage with all CRUD operations
   db.ts                - Drizzle database connection
   seed.ts              - Sample scientific documents seeder
 
 shared/
-  schema.ts            - Drizzle schemas with isFavorite, table/image block types
+  schema.ts            - Drizzle schemas: documents, projects, tags, documentTags, documentVersions
 ```
 
 ## Key Features
@@ -56,6 +63,12 @@ shared/
 - Export: Markdown (.md) download and Print/PDF
 - Quick-start templates: Lab Report, Protocol, Meeting Notes, Research Log
 - Auto-save with debounced persistence
+- **Dashboard**: Calendar view (monthly grid showing doc activity), Projects view (grouped docs)
+- **Projects**: Color-coded project organization, assign docs to projects
+- **Tags**: Color-coded tags, assign multiple tags per doc, filter by tag in sidebar
+- **Version History**: Save snapshots, browse history, restore previous versions
+- **Metadata Bar**: Project selector, tag pills, created/modified dates in editor
+- **Status Bar**: Save status indicator, version number, project name
 
 ## Design Tokens
 - Font: Inter (sans), JetBrains Mono (code)
@@ -63,15 +76,33 @@ shared/
 - Max-width 900px centered content area
 - Dark mode CSS variables defined in index.css .dark class
 
+## Database Schema
+- `documents` - id, title, blocks (jsonb), icon, coverColor, isFavorite, projectId, version, updatedAt, createdAt, sortOrder
+- `projects` - id, name (unique), color, description, createdAt
+- `tags` - id, name (unique), color
+- `documentTags` - documentId, tagId (composite PK)
+- `documentVersions` - id, documentId, version, title, blocks (jsonb), createdAt
+
 ## API Endpoints
 - GET /api/documents - List all documents
-- GET /api/documents/search?q=query - Full-text search across title and blocks
+- GET /api/documents/search?q=query - Full-text search
 - GET /api/documents/:id - Get single document
+- GET /api/documents/:id/tags - Get document's tags
+- GET /api/documents/:id/versions - List version history
 - POST /api/documents - Create document
 - POST /api/documents/:id/duplicate - Duplicate document
-- POST /api/documents/:id/favorite - Toggle favorite status
-- PATCH /api/documents/:id - Update document
+- POST /api/documents/:id/favorite - Toggle favorite
+- POST /api/documents/:id/versions - Save version snapshot
+- POST /api/documents/:id/versions/:version/restore - Restore version
+- PATCH /api/documents/:id - Update document (accepts projectId, tagIds)
 - DELETE /api/documents/:id - Delete document
+- GET /api/projects - List projects
+- POST /api/projects - Create project
+- PATCH /api/projects/:id - Update project
+- DELETE /api/projects/:id - Delete project
+- GET /api/tags - List tags
+- POST /api/tags - Create tag
+- DELETE /api/tags/:id - Delete tag
 
 ## Important Notes
 - Block content stored as raw HTML innerHTML (from contentEditable)
@@ -82,3 +113,5 @@ shared/
 - Never add `hover:bg-*` classes to buttons; use hover-elevate system
 - Rules of Hooks: all hooks must be before any early returns
 - No emoji in UI — use lucide-react icons (seed data emoji for doc icons is acceptable)
+- `apiRequest(method, url, data)` pattern for all API calls
+- `updateBlocksSilent` for content edits; `updateBlocks` for structural changes

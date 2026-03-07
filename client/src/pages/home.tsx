@@ -1,8 +1,11 @@
-import { FlaskConical, ArrowRight, FileText, Beaker, ClipboardList, BookOpen } from "lucide-react";
-import { useMutation } from "@tanstack/react-query";
+import { FlaskConical, ArrowRight, FileText, Beaker, ClipboardList, BookOpen, Calendar, FolderOpen, Plus } from "lucide-react";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useLocation } from "wouter";
-import type { Document } from "@shared/schema";
+import type { Document, Project, Tag } from "@shared/schema";
+import { useState, useMemo } from "react";
+import { CalendarView } from "@/components/calendar-view";
+import { ProjectView } from "@/components/project-view";
 
 function genId() {
   return Math.random().toString(36).substr(2, 9);
@@ -96,8 +99,35 @@ const templates = [
   },
 ];
 
+type ViewTab = "calendar" | "projects";
+
 export default function HomePage() {
   const [, setLocation] = useLocation();
+  const [activeTab, setActiveTab] = useState<ViewTab>("calendar");
+
+  const { data: documents = [] } = useQuery<Document[]>({
+    queryKey: ["/api/documents"],
+  });
+
+  const { data: projects = [] } = useQuery<Project[]>({
+    queryKey: ["/api/projects"],
+  });
+
+  const { data: allTags = [] } = useQuery<Tag[]>({
+    queryKey: ["/api/tags"],
+  });
+
+  const docIds = useMemo(() => documents.map(d => d.id).join(","), [documents]);
+
+  const { data: tagsByDoc = {} } = useQuery<Record<string, Tag[]>>({
+    queryKey: ["/api/documents/tags/batch", docIds],
+    queryFn: async () => {
+      if (!docIds) return {};
+      const res = await fetch(`/api/documents/tags/batch?ids=${docIds}`);
+      return res.json();
+    },
+    enabled: documents.length > 0,
+  });
 
   const createMutation = useMutation({
     mutationFn: async (data?: { title: string; blocks: any[]; icon?: string }) => {
@@ -113,31 +143,100 @@ export default function HomePage() {
     },
   });
 
+  const recentDocs = useMemo(() => {
+    return documents.slice(0, 6);
+  }, [documents]);
+
   return (
     <div className="h-full overflow-y-auto" data-testid="home-page">
-      <div className="max-w-2xl mx-auto px-6 py-16">
-        <div className="text-center mb-12">
-          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#2EAADC] to-[#2EAADC]/70 flex items-center justify-center mx-auto mb-6 shadow-sm">
-            <FlaskConical className="w-8 h-8 text-white" />
+      <div className="max-w-[900px] mx-auto px-6 py-10">
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <h1 className="text-2xl font-bold text-foreground tracking-tight">Dashboard</h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              {documents.length} document{documents.length !== 1 ? "s" : ""} across {projects.length} project{projects.length !== 1 ? "s" : ""}
+            </p>
           </div>
-          <h1 className="text-2xl font-bold text-foreground mb-2 tracking-tight">Welcome to SciNote</h1>
-          <p className="text-muted-foreground mb-6 leading-relaxed max-w-md mx-auto">
-            A distraction-free editor built for scientists and R&D engineers.
-            Write, organize, and share your research notes.
-          </p>
           <button
             onClick={() => createMutation.mutate()}
             disabled={createMutation.isPending}
-            className="inline-flex items-center gap-2 h-10 px-5 rounded-md bg-foreground text-background text-sm font-medium transition-colors duration-150 hover-elevate"
-            data-testid="button-get-started"
+            className="flex items-center gap-2 h-9 px-4 rounded-md bg-foreground text-background text-sm font-medium transition-colors duration-150 hover-elevate"
+            data-testid="button-new-document"
           >
-            Get Started
-            <ArrowRight className="w-4 h-4" />
+            <Plus className="w-4 h-4" />
+            New Document
           </button>
         </div>
 
+        {recentDocs.length > 0 && (
+          <div className="mb-8">
+            <h2 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3">Recently Modified</h2>
+            <div className="flex gap-3 overflow-x-auto pb-2">
+              {recentDocs.map((doc) => {
+                const proj = projects.find(p => p.id === doc.projectId);
+                return (
+                  <button
+                    key={doc.id}
+                    onClick={() => setLocation(`/doc/${doc.id}`)}
+                    className="shrink-0 w-[180px] text-left p-3 rounded-lg border border-border bg-card transition-colors duration-150 hover-elevate"
+                    data-testid={`recent-doc-${doc.id}`}
+                  >
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-base">{doc.icon || "📄"}</span>
+                      <span className="text-xs font-medium text-foreground truncate">{doc.title || "Untitled"}</span>
+                    </div>
+                    {proj && (
+                      <div className="flex items-center gap-1 mt-1">
+                        <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: proj.color }} />
+                        <span className="text-[10px] text-muted-foreground">{proj.name}</span>
+                      </div>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         <div className="mb-8">
-          <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-4">Quick-start templates</h2>
+          <div className="flex items-center gap-1 mb-4 border-b border-border">
+            <button
+              onClick={() => setActiveTab("calendar")}
+              className={`flex items-center gap-1.5 px-3 py-2 text-sm border-b-2 transition-colors ${
+                activeTab === "calendar"
+                  ? "border-primary text-foreground font-medium"
+                  : "border-transparent text-muted-foreground"
+              }`}
+              data-testid="tab-calendar"
+            >
+              <Calendar className="w-4 h-4" />
+              Calendar
+            </button>
+            <button
+              onClick={() => setActiveTab("projects")}
+              className={`flex items-center gap-1.5 px-3 py-2 text-sm border-b-2 transition-colors ${
+                activeTab === "projects"
+                  ? "border-primary text-foreground font-medium"
+                  : "border-transparent text-muted-foreground"
+              }`}
+              data-testid="tab-projects"
+            >
+              <FolderOpen className="w-4 h-4" />
+              Projects
+            </button>
+          </div>
+
+          {activeTab === "calendar" && (
+            <CalendarView documents={documents} projects={projects} tagsByDoc={tagsByDoc} />
+          )}
+
+          {activeTab === "projects" && (
+            <ProjectView documents={documents} projects={projects} tagsByDoc={tagsByDoc} />
+          )}
+        </div>
+
+        <div className="mb-8">
+          <h2 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-4">Quick-start templates</h2>
           <div className="grid grid-cols-2 gap-3">
             {templates.map((template) => {
               const Icon = template.iconComponent;
@@ -201,10 +300,6 @@ export default function HomePage() {
             </div>
           </div>
         </div>
-
-        <p className="text-xs text-muted-foreground/60 mt-6 text-center">
-          Or select a document from the sidebar
-        </p>
       </div>
     </div>
   );
