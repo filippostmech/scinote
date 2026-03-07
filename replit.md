@@ -17,7 +17,7 @@ client/src/
     home.tsx           - Dashboard with calendar view, project view, recent docs, templates
     editor.tsx         - Document editor with metadata bar, version history, status bar
   components/
-    doc-sidebar.tsx    - Sidebar: favorites, project-grouped docs, tag filters, manage links
+    doc-sidebar.tsx    - Collapsible sidebar (260px/56px) with 5 nav sections: Dashboard, Favorites, Projects, Documents, Tags
     block-editor.tsx   - Core block editor with undo/redo, smart list continuation
     block-item.tsx     - Individual block rendering with markdown shortcuts, keyboard formatting
     slash-command-menu.tsx - "/" command palette with categories
