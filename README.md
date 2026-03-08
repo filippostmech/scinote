@@ -1,11 +1,24 @@
-# SciNote
+<p align="center">
+  <img src="docs/scinote-logo.png" alt="SciNote Logo" width="180" />
+</p>
 
-A block-based rich text editor built for scientists and R&D engineers. Organize lab notes, protocols, meeting agendas, and research logs with a Notion-inspired editing experience — backed by PostgreSQL for reliable data persistence.
+<h1 align="center">SciNote</h1>
 
-![MIT License](https://img.shields.io/badge/license-MIT-green)
-![TypeScript](https://img.shields.io/badge/TypeScript-5.6-blue)
-![React](https://img.shields.io/badge/React-18-blue)
-![PostgreSQL](https://img.shields.io/badge/PostgreSQL-14+-blue)
+<p align="center">
+  <strong>A block-based rich text editor for scientists and R&D engineers</strong><br>
+  Organize lab notes, protocols, meeting agendas, and research logs with a Notion-inspired editing experience — workspaces, projects, tags, version history, and full-text search, all backed by PostgreSQL.
+</p>
+
+<p align="center">
+  <a href="#features">Features</a> · <a href="#getting-started">Get Started</a> · <a href="#tech-stack">Tech Stack</a> · <a href="#api">API Reference</a> · <a href="#contributing">Contributing</a>
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/license-MIT-green" alt="MIT License" />
+  <img src="https://img.shields.io/badge/TypeScript-5.6-blue" alt="TypeScript" />
+  <img src="https://img.shields.io/badge/React-18-blue" alt="React" />
+  <img src="https://img.shields.io/badge/PostgreSQL-14+-blue" alt="PostgreSQL" />
+</p>
 
 ---
 
