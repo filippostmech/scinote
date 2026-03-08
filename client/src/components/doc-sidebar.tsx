@@ -2,7 +2,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useLocation } from "wouter";
 import type { Document, Project, Tag, Workspace } from "@shared/schema";
-import { Plus, FileText, Search, Trash2, MoreHorizontal, FlaskConical, Star, Copy, Sun, Moon, FolderOpen, TagIcon, ChevronRight, ChevronDown, LayoutDashboard, PanelLeftClose, PanelLeftOpen, Layers } from "lucide-react";
+import { Plus, FileText, Search, Trash2, MoreHorizontal, FlaskConical, Star, Copy, Sun, Moon, FolderOpen, TagIcon, ChevronRight, ChevronDown, LayoutDashboard, PanelLeftClose, PanelLeftOpen, Layers, Pencil } from "lucide-react";
 import { useState, useMemo, useEffect } from "react";
 import {
   DropdownMenu,
@@ -118,6 +118,45 @@ export function DocSidebar() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/documents"] });
+    },
+  });
+
+  const deleteWorkspaceMutation = useMutation({
+    mutationFn: async (id: string) => {
+      await apiRequest("DELETE", `/api/workspaces/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/workspaces"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/documents"] });
+    },
+  });
+
+  const renameWorkspaceMutation = useMutation({
+    mutationFn: async ({ id, name }: { id: string; name: string }) => {
+      await apiRequest("PATCH", `/api/workspaces/${id}`, { name });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/workspaces"] });
+    },
+  });
+
+  const deleteProjectMutation = useMutation({
+    mutationFn: async (id: string) => {
+      await apiRequest("DELETE", `/api/projects/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/documents"] });
+    },
+  });
+
+  const renameProjectMutation = useMutation({
+    mutationFn: async ({ id, name }: { id: string; name: string }) => {
+      await apiRequest("PATCH", `/api/projects/${id}`, { name });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
     },
   });
 
@@ -348,7 +387,7 @@ export function DocSidebar() {
                       return (
                         <div key={ws.id}>
                           <div
-                            className="flex items-center gap-1.5 px-2 py-1 cursor-pointer rounded-md transition-colors hover-elevate"
+                            className="group flex items-center gap-1.5 px-2 py-1 cursor-pointer rounded-md transition-colors hover-elevate"
                             onClick={() => setExpandedWorkspaces(prev => ({ ...prev, [ws.id]: !prev[ws.id] }))}
                             data-testid={`sidebar-workspace-${ws.id}`}
                           >
@@ -356,6 +395,46 @@ export function DocSidebar() {
                             <span className="w-2.5 h-2.5 rounded shrink-0" style={{ backgroundColor: ws.color }} />
                             <span className="text-xs font-medium text-foreground/80 truncate flex-1">{ws.name}</span>
                             <span className="text-[10px] text-muted-foreground/40">{wsData.projects.length + wsData.docs.length}</span>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <button
+                                  className="w-5 h-5 flex items-center justify-center rounded opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground"
+                                  onClick={(e) => e.stopPropagation()}
+                                  data-testid={`button-workspace-menu-${ws.id}`}
+                                >
+                                  <MoreHorizontal className="w-3.5 h-3.5" />
+                                </button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="w-44">
+                                <DropdownMenuItem
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    const newName = prompt("Rename workspace:", ws.name);
+                                    if (newName && newName.trim() && newName !== ws.name) {
+                                      renameWorkspaceMutation.mutate({ id: ws.id, name: newName.trim() });
+                                    }
+                                  }}
+                                  data-testid={`button-rename-workspace-${ws.id}`}
+                                >
+                                  <Pencil className="w-4 h-4 mr-2" />
+                                  Rename
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (confirm(`Delete workspace "${ws.name}"? Projects and documents will be unassigned.`)) {
+                                      deleteWorkspaceMutation.mutate(ws.id);
+                                    }
+                                  }}
+                                  className="text-destructive"
+                                  data-testid={`button-delete-workspace-${ws.id}`}
+                                >
+                                  <Trash2 className="w-4 h-4 mr-2" />
+                                  Delete
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
                           </div>
                           {isExpanded && (
                             <div className="ml-3 mt-0.5 space-y-0.5">
@@ -365,7 +444,7 @@ export function DocSidebar() {
                                 return (
                                   <div key={proj.id}>
                                     <div
-                                      className="flex items-center gap-1.5 px-2 py-1 cursor-pointer rounded-md transition-colors hover-elevate"
+                                      className="group/proj flex items-center gap-1.5 px-2 py-1 cursor-pointer rounded-md transition-colors hover-elevate"
                                       onClick={() => setExpandedWsProjects(prev => ({ ...prev, [proj.id]: !prev[proj.id] }))}
                                       data-testid={`sidebar-ws-project-${proj.id}`}
                                     >
@@ -373,6 +452,46 @@ export function DocSidebar() {
                                       <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: proj.color }} />
                                       <span className="text-[11px] text-muted-foreground truncate flex-1">{proj.name}</span>
                                       <span className="text-[10px] text-muted-foreground/40">{projDocs.length}</span>
+                                      <DropdownMenu>
+                                        <DropdownMenuTrigger asChild>
+                                          <button
+                                            className="w-5 h-5 flex items-center justify-center rounded opacity-0 group-hover/proj:opacity-100 transition-opacity text-muted-foreground"
+                                            onClick={(e) => e.stopPropagation()}
+                                            data-testid={`button-project-menu-${proj.id}`}
+                                          >
+                                            <MoreHorizontal className="w-3.5 h-3.5" />
+                                          </button>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent align="end" className="w-44">
+                                          <DropdownMenuItem
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              const newName = prompt("Rename project:", proj.name);
+                                              if (newName && newName.trim() && newName !== proj.name) {
+                                                renameProjectMutation.mutate({ id: proj.id, name: newName.trim() });
+                                              }
+                                            }}
+                                            data-testid={`button-rename-project-${proj.id}`}
+                                          >
+                                            <Pencil className="w-4 h-4 mr-2" />
+                                            Rename
+                                          </DropdownMenuItem>
+                                          <DropdownMenuSeparator />
+                                          <DropdownMenuItem
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              if (confirm(`Delete project "${proj.name}"?`)) {
+                                                deleteProjectMutation.mutate(proj.id);
+                                              }
+                                            }}
+                                            className="text-destructive"
+                                            data-testid={`button-delete-project-${proj.id}`}
+                                          >
+                                            <Trash2 className="w-4 h-4 mr-2" />
+                                            Delete
+                                          </DropdownMenuItem>
+                                        </DropdownMenuContent>
+                                      </DropdownMenu>
                                     </div>
                                     {isProjExpanded && projDocs.length > 0 && (
                                       <div className="ml-3 space-y-0.5">
@@ -436,10 +555,50 @@ export function DocSidebar() {
                       const projectDocs = docsByProject[project.id] || [];
                       return (
                         <div key={project.id}>
-                          <div className="flex items-center gap-1.5 px-2 py-1">
+                          <div className="group flex items-center gap-1.5 px-2 py-1 rounded-md hover-elevate">
                             <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: project.color }} />
-                            <span className="text-[11px] font-medium text-muted-foreground truncate">{project.name}</span>
-                            <span className="text-[10px] text-muted-foreground/40 ml-auto">{projectDocs.length}</span>
+                            <span className="text-[11px] font-medium text-muted-foreground truncate flex-1">{project.name}</span>
+                            <span className="text-[10px] text-muted-foreground/40">{projectDocs.length}</span>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <button
+                                  className="w-5 h-5 flex items-center justify-center rounded opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground"
+                                  onClick={(e) => e.stopPropagation()}
+                                  data-testid={`button-project-menu-${project.id}`}
+                                >
+                                  <MoreHorizontal className="w-3.5 h-3.5" />
+                                </button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="w-44">
+                                <DropdownMenuItem
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    const newName = prompt("Rename project:", project.name);
+                                    if (newName && newName.trim() && newName !== project.name) {
+                                      renameProjectMutation.mutate({ id: project.id, name: newName.trim() });
+                                    }
+                                  }}
+                                  data-testid={`button-rename-project-${project.id}`}
+                                >
+                                  <Pencil className="w-4 h-4 mr-2" />
+                                  Rename
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (confirm(`Delete project "${project.name}"?`)) {
+                                      deleteProjectMutation.mutate(project.id);
+                                    }
+                                  }}
+                                  className="text-destructive"
+                                  data-testid={`button-delete-project-${project.id}`}
+                                >
+                                  <Trash2 className="w-4 h-4 mr-2" />
+                                  Delete
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
                           </div>
                           {projectDocs.length > 0 && (
                             <div className="space-y-0.5 ml-1">
