@@ -93,15 +93,16 @@ export function TagManager({ isOpen, onClose }: TagManagerProps) {
               <p className="text-xs text-muted-foreground/60 text-center py-4">No tags created yet</p>
             ) : (
               tags.map((tag) => (
-                <div key={tag.id} className="flex items-center gap-2 px-2 py-1.5 rounded-md group">
+                <div key={tag.id} className="flex items-center gap-2 px-2 py-1.5 rounded-md">
                   <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: tag.color }} />
                   <span className="text-sm text-foreground flex-1">{tag.name}</span>
                   <button
                     onClick={() => deleteMutation.mutate(tag.id)}
-                    className="w-5 h-5 flex items-center justify-center rounded text-muted-foreground/40 opacity-0 group-hover:opacity-100 transition-opacity hover-elevate"
+                    className="w-6 h-6 flex items-center justify-center rounded text-destructive/60 transition-colors hover-elevate shrink-0"
+                    title="Delete tag"
                     data-testid={`button-delete-tag-${tag.id}`}
                   >
-                    <Trash2 className="w-3 h-3" />
+                    <Trash2 className="w-3.5 h-3.5" />
                   </button>
                 </div>
               ))

@@ -129,7 +129,7 @@ export function ProjectManager({ isOpen, onClose }: ProjectManagerProps) {
               projects.map((project) => {
                 const projWs = workspaces.find(w => w.id === project.workspaceId);
                 return (
-                  <div key={project.id} className="flex items-center gap-2 px-2 py-1.5 rounded-md group">
+                  <div key={project.id} className="flex items-center gap-2 px-2 py-1.5 rounded-md">
                     <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: project.color }} />
                     <div className="flex-1 min-w-0">
                       <span className="text-sm text-foreground truncate block">{project.name}</span>
@@ -151,10 +151,11 @@ export function ProjectManager({ isOpen, onClose }: ProjectManagerProps) {
                           deleteMutation.mutate(project.id);
                         }
                       }}
-                      className="w-5 h-5 flex items-center justify-center rounded text-muted-foreground/40 opacity-0 group-hover:opacity-100 transition-opacity hover-elevate"
+                      className="w-6 h-6 flex items-center justify-center rounded text-destructive/60 transition-colors hover-elevate shrink-0"
+                      title="Delete project"
                       data-testid={`button-delete-project-${project.id}`}
                     >
-                      <Trash2 className="w-3 h-3" />
+                      <Trash2 className="w-3.5 h-3.5" />
                     </button>
                   </div>
                 );
