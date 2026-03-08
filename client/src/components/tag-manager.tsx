@@ -5,7 +5,7 @@ import { X, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 
 const TAG_COLORS = [
-  "#000000", "#E0F582", "#E65853", "#D9730D",
+  "#000000", "#53A31D", "#E65853", "#D9730D",
   "#DFAB01", "#0F7B6C", "#6940A5", "#AD1A72",
 ];
 

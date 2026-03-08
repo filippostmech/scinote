@@ -74,8 +74,9 @@ shared/
 
 ## Design Tokens (Highlighter Theme)
 - Font: Space Grotesk (sans), Geist (serif), Geist Mono (code)
-- Colors follow Replit "Highlighter" theme: #000000 text, #8F8F8F muted, #FFFFFF bg, #F5F5F5 muted bg, #E0F582 primary (lime green)
-- Primary: lime/yellow-green (#E0F582), Destructive: red (#E65853), Secondary: black (#000000)
+- Colors follow Replit "Highlighter" theme: #000000 text, #8F8F8F muted, #FFFFFF bg, #F5F5F5 muted bg, #53A31D primary (deep lime green)
+- Primary: deep lime-green (#53A31D / HSL 75 70% 38%), Destructive: red (#E65853), Secondary: black (#000000)
+- Dark mode primary stays brighter (HSL 73 70% 55%) for contrast on dark backgrounds
 - Border radius: 0 (sharp corners throughout)
 - Max-width 900px centered content area
 - Dark mode CSS variables defined in index.css .dark class

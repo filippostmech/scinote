@@ -12,7 +12,7 @@ interface ProjectViewProps {
 }
 
 const PROJECT_COLORS = [
-  "#E0F582", "#E65853", "#D9730D", "#DFAB01",
+  "#53A31D", "#E65853", "#D9730D", "#DFAB01",
   "#0F7B6C", "#6940A5", "#AD1A72", "#000000",
 ];
 
