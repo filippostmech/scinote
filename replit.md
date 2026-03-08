@@ -72,11 +72,14 @@ shared/
 - **Status Bar**: Save status indicator, version number, workspace name, project name
 - **Workspaces**: Top-level organizational layer above projects; assign projects and documents to workspaces; sidebar section with nested hierarchy; dashboard workspace filter
 
-## Design Tokens
-- Font: Inter (sans), JetBrains Mono (code)
-- Colors follow Notion's palette: #37352F text, #787774 muted, #FFFFFF bg, #F7F6F3 hover, #2EAADC accent
+## Design Tokens (Highlighter Theme)
+- Font: Space Grotesk (sans), Geist (serif), Geist Mono (code)
+- Colors follow Replit "Highlighter" theme: #000000 text, #8F8F8F muted, #FFFFFF bg, #F5F5F5 muted bg, #E0F582 primary (lime green)
+- Primary: lime/yellow-green (#E0F582), Destructive: red (#E65853), Secondary: black (#000000)
+- Border radius: 0 (sharp corners throughout)
 - Max-width 900px centered content area
 - Dark mode CSS variables defined in index.css .dark class
+- Color palettes for tags/projects/workspaces updated to match Highlighter theme
 
 ## Database Schema
 - `workspaces` - id, name (unique), color, description, createdAt

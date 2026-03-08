@@ -138,8 +138,8 @@ export function CalendarView({ documents, projects, tagsByDoc }: CalendarViewPro
                   {docs.slice(0, 3).map((doc) => (
                     <span
                       key={doc.id}
-                      className="w-1.5 h-1.5 rounded-full"
-                      style={{ backgroundColor: doc.projectId && projectMap[doc.projectId] ? projectMap[doc.projectId].color : "#2EAADC" }}
+                      className={`w-1.5 h-1.5 rounded-full ${!(doc.projectId && projectMap[doc.projectId]) ? "bg-primary" : ""}`}
+                      style={doc.projectId && projectMap[doc.projectId] ? { backgroundColor: projectMap[doc.projectId].color } : undefined}
                     />
                   ))}
                   {docs.length > 3 && (

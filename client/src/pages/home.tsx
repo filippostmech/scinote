@@ -315,7 +315,7 @@ export default function HomePage() {
                   data-testid={`template-${template.title.toLowerCase().replace(/\s+/g, "-")}`}
                 >
                   <div className="flex items-center gap-2 mb-2">
-                    <Icon className="w-4 h-4 text-[#2EAADC]" />
+                    <Icon className="w-4 h-4 text-primary" />
                     <span className="text-sm font-medium text-foreground">{template.title}</span>
                   </div>
                   <p className="text-xs text-muted-foreground leading-relaxed">{template.description}</p>

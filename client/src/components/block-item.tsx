@@ -183,7 +183,7 @@ export const BlockItem = forwardRef<HTMLDivElement, BlockItemProps>(
             const range = sel.getRangeAt(0);
             const text = range.toString();
             const codeEl = document.createElement("code");
-            codeEl.className = "px-1.5 py-0.5 rounded bg-[#F7F6F3] dark:bg-[#2d2d2d] font-mono text-sm text-[#EB5757]";
+            codeEl.className = "px-1.5 py-0.5 rounded bg-muted dark:bg-muted font-mono text-sm text-destructive";
             codeEl.textContent = text;
             range.deleteContents();
             range.insertNode(codeEl);
@@ -253,8 +253,8 @@ export const BlockItem = forwardRef<HTMLDivElement, BlockItemProps>(
 
     const dropIndicatorClass = isDragOver && dropPosition
       ? dropPosition === "above"
-        ? "before:absolute before:top-0 before:left-0 before:right-0 before:h-0.5 before:bg-[#2EAADC] before:rounded-full"
-        : "after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-[#2EAADC] after:rounded-full"
+        ? "before:absolute before:top-0 before:left-0 before:right-0 before:h-0.5 before:bg-primary"
+        : "after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-primary"
       : "";
 
     if (block.type === "image") {
@@ -414,7 +414,7 @@ export const BlockItem = forwardRef<HTMLDivElement, BlockItemProps>(
           )}
           {block.type === "code" && (
             <div className="rounded-md overflow-hidden">
-              <pre className="bg-[#F7F6F3] dark:bg-[#1e1e1e] p-4 rounded-md overflow-x-auto">
+              <pre className="bg-muted dark:bg-muted p-4 rounded-md overflow-x-auto">
                 <code
                   ref={contentRef}
                   contentEditable

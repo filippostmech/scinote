@@ -23,7 +23,7 @@ export function InlineToolbar({ position }: InlineToolbarProps) {
     const range = sel.getRangeAt(0);
     const text = range.toString();
     const codeEl = document.createElement("code");
-    codeEl.className = "px-1.5 py-0.5 rounded bg-[#F7F6F3] dark:bg-[#2d2d2d] font-mono text-sm text-[#EB5757]";
+    codeEl.className = "px-1.5 py-0.5 rounded bg-muted dark:bg-muted font-mono text-sm text-destructive";
     codeEl.textContent = text;
     range.deleteContents();
     range.insertNode(codeEl);
@@ -51,7 +51,7 @@ export function InlineToolbar({ position }: InlineToolbarProps) {
       execCommand("createLink", url);
       const links = document.querySelectorAll("a[href]");
       links.forEach((link) => {
-        (link as HTMLElement).className = "text-[#2EAADC] underline decoration-[#2EAADC]/30 underline-offset-2 hover:decoration-[#2EAADC]";
+        (link as HTMLElement).className = "text-primary underline decoration-primary/30 underline-offset-2 hover:decoration-primary";
         (link as HTMLElement).setAttribute("target", "_blank");
         (link as HTMLElement).setAttribute("rel", "noopener noreferrer");
       });

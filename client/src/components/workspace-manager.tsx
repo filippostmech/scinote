@@ -5,8 +5,8 @@ import { X, Trash2 } from "lucide-react";
 import { useState } from "react";
 
 const WORKSPACE_COLORS = [
-  "#2EAADC", "#E03E3E", "#D9730D", "#DFAB01",
-  "#0F7B6C", "#6940A5", "#AD1A72", "#787774",
+  "#E0F582", "#E65853", "#D9730D", "#DFAB01",
+  "#0F7B6C", "#6940A5", "#AD1A72", "#000000",
 ];
 
 interface WorkspaceManagerProps {

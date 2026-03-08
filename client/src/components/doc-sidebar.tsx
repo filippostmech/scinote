@@ -249,7 +249,7 @@ export function DocSidebar() {
   return (
     <>
       <div
-        className="h-full flex flex-col border-r border-border bg-[#FBFBFA] dark:bg-[#191919] shrink-0 transition-all duration-200 ease-in-out overflow-hidden"
+        className="h-full flex flex-col border-r border-border bg-sidebar dark:bg-sidebar shrink-0 transition-all duration-200 ease-in-out overflow-hidden"
         style={{ width: collapsed ? 56 : 260 }}
         data-testid="doc-sidebar"
       >
@@ -261,7 +261,7 @@ export function DocSidebar() {
               data-testid="button-home"
               title="Go to dashboard"
             >
-              <FlaskConical className="w-5 h-5 text-[#2EAADC] shrink-0" />
+              <FlaskConical className="w-5 h-5 text-primary shrink-0" />
               {!collapsed && <span className="text-sm font-semibold text-foreground tracking-tight">SciNote</span>}
             </button>
             <div className={`flex items-center ${collapsed ? "flex-col gap-1" : "gap-1"}`}>
