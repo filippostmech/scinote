@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/scinote-logo.png" alt="SciNote Logo" width="180" />
+  <img src="assets/scinote-logo.png" alt="SciNote Logo" width="180" />
 </p>
 
 <h1 align="center">SciNote</h1>
