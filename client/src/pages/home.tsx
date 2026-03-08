@@ -1,8 +1,8 @@
-import { FlaskConical, ArrowRight, FileText, Beaker, ClipboardList, BookOpen, Calendar, FolderOpen, Plus } from "lucide-react";
+import { FlaskConical, ArrowRight, FileText, Beaker, ClipboardList, BookOpen, Calendar, FolderOpen, Plus, Layers } from "lucide-react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useLocation } from "wouter";
-import type { Document, Project, Tag } from "@shared/schema";
+import type { Document, Project, Tag, Workspace } from "@shared/schema";
 import { useState, useMemo } from "react";
 import { CalendarView } from "@/components/calendar-view";
 import { ProjectView } from "@/components/project-view";
@@ -104,6 +104,7 @@ type ViewTab = "calendar" | "projects";
 export default function HomePage() {
   const [, setLocation] = useLocation();
   const [activeTab, setActiveTab] = useState<ViewTab>("calendar");
+  const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string | null>(null);
 
   const { data: documents = [] } = useQuery<Document[]>({
     queryKey: ["/api/documents"],
@@ -115,6 +116,10 @@ export default function HomePage() {
 
   const { data: allTags = [] } = useQuery<Tag[]>({
     queryKey: ["/api/tags"],
+  });
+
+  const { data: workspaces = [] } = useQuery<Workspace[]>({
+    queryKey: ["/api/workspaces"],
   });
 
   const docIds = useMemo(() => documents.map(d => d.id).join(","), [documents]);
@@ -143,9 +148,25 @@ export default function HomePage() {
     },
   });
 
+  const filteredDocs = useMemo(() => {
+    if (!selectedWorkspaceId) return documents;
+    const wsProjectIds = projects.filter(p => p.workspaceId === selectedWorkspaceId).map(p => p.id);
+    return documents.filter(d =>
+      d.workspaceId === selectedWorkspaceId ||
+      (d.projectId && wsProjectIds.includes(d.projectId))
+    );
+  }, [documents, selectedWorkspaceId, projects]);
+
+  const filteredProjects = useMemo(() => {
+    if (!selectedWorkspaceId) return projects;
+    return projects.filter(p => p.workspaceId === selectedWorkspaceId);
+  }, [projects, selectedWorkspaceId]);
+
   const recentDocs = useMemo(() => {
-    return documents.slice(0, 6);
-  }, [documents]);
+    return filteredDocs.slice(0, 6);
+  }, [filteredDocs]);
+
+  const selectedWorkspace = workspaces.find(w => w.id === selectedWorkspaceId);
 
   return (
     <div className="h-full overflow-y-auto" data-testid="home-page">
@@ -154,7 +175,7 @@ export default function HomePage() {
           <div>
             <h1 className="text-2xl font-bold text-foreground tracking-tight">Dashboard</h1>
             <p className="text-sm text-muted-foreground mt-1">
-              {documents.length} document{documents.length !== 1 ? "s" : ""} across {projects.length} project{projects.length !== 1 ? "s" : ""}
+              {filteredDocs.length} document{filteredDocs.length !== 1 ? "s" : ""} across {filteredProjects.length} project{filteredProjects.length !== 1 ? "s" : ""}
             </p>
           </div>
           <button
@@ -168,12 +189,47 @@ export default function HomePage() {
           </button>
         </div>
 
+        {workspaces.length > 0 && (
+          <div className="flex items-center gap-2 mb-6" data-testid="workspace-filter">
+            <Layers className="w-4 h-4 text-muted-foreground" />
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <button
+                onClick={() => setSelectedWorkspaceId(null)}
+                className={`text-xs px-2.5 py-1 rounded-md transition-colors ${
+                  !selectedWorkspaceId
+                    ? "bg-foreground text-background font-medium"
+                    : "text-muted-foreground hover-elevate"
+                }`}
+                data-testid="workspace-filter-all"
+              >
+                All Workspaces
+              </button>
+              {workspaces.map((ws) => (
+                <button
+                  key={ws.id}
+                  onClick={() => setSelectedWorkspaceId(selectedWorkspaceId === ws.id ? null : ws.id)}
+                  className={`text-xs px-2.5 py-1 rounded-md transition-colors flex items-center gap-1.5 ${
+                    selectedWorkspaceId === ws.id
+                      ? "bg-foreground text-background font-medium"
+                      : "text-muted-foreground hover-elevate"
+                  }`}
+                  data-testid={`workspace-filter-${ws.id}`}
+                >
+                  <span className="w-2 h-2 rounded" style={{ backgroundColor: ws.color }} />
+                  {ws.name}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         {recentDocs.length > 0 && (
           <div className="mb-8">
             <h2 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3">Recently Modified</h2>
             <div className="flex gap-3 overflow-x-auto pb-2">
               {recentDocs.map((doc) => {
                 const proj = projects.find(p => p.id === doc.projectId);
+                const ws = workspaces.find(w => w.id === doc.workspaceId);
                 return (
                   <button
                     key={doc.id}
@@ -185,8 +241,14 @@ export default function HomePage() {
                       <span className="text-base">{doc.icon || "📄"}</span>
                       <span className="text-xs font-medium text-foreground truncate">{doc.title || "Untitled"}</span>
                     </div>
-                    {proj && (
+                    {ws && (
                       <div className="flex items-center gap-1 mt-1">
+                        <span className="w-1.5 h-1.5 rounded" style={{ backgroundColor: ws.color }} />
+                        <span className="text-[10px] text-muted-foreground">{ws.name}</span>
+                      </div>
+                    )}
+                    {proj && (
+                      <div className="flex items-center gap-1 mt-0.5">
                         <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: proj.color }} />
                         <span className="text-[10px] text-muted-foreground">{proj.name}</span>
                       </div>
@@ -227,11 +289,11 @@ export default function HomePage() {
           </div>
 
           {activeTab === "calendar" && (
-            <CalendarView documents={documents} projects={projects} tagsByDoc={tagsByDoc} />
+            <CalendarView documents={filteredDocs} projects={projects} tagsByDoc={tagsByDoc} />
           )}
 
           {activeTab === "projects" && (
-            <ProjectView documents={documents} projects={projects} tagsByDoc={tagsByDoc} />
+            <ProjectView documents={filteredDocs} projects={filteredProjects} tagsByDoc={tagsByDoc} />
           )}
         </div>
 

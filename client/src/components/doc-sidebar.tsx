@@ -1,8 +1,8 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useLocation } from "wouter";
-import type { Document, Project, Tag } from "@shared/schema";
-import { Plus, FileText, Search, Trash2, MoreHorizontal, FlaskConical, Star, Copy, Sun, Moon, FolderOpen, TagIcon, ChevronRight, ChevronDown, LayoutDashboard, PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import type { Document, Project, Tag, Workspace } from "@shared/schema";
+import { Plus, FileText, Search, Trash2, MoreHorizontal, FlaskConical, Star, Copy, Sun, Moon, FolderOpen, TagIcon, ChevronRight, ChevronDown, LayoutDashboard, PanelLeftClose, PanelLeftOpen, Layers } from "lucide-react";
 import { useState, useMemo, useEffect } from "react";
 import {
   DropdownMenu,
@@ -15,8 +15,9 @@ import { SearchModal } from "./search-modal";
 import { useTheme } from "./theme-provider";
 import { ProjectManager } from "./project-manager";
 import { TagManager } from "./tag-manager";
+import { WorkspaceManager } from "./workspace-manager";
 
-type SidebarSection = "favorites" | "projects" | "documents" | "tags";
+type SidebarSection = "workspaces" | "favorites" | "projects" | "documents" | "tags";
 
 function getStoredCollapsed(): boolean {
   try {
@@ -31,14 +32,18 @@ export function DocSidebar() {
   const [searchModalOpen, setSearchModalOpen] = useState(false);
   const [projectManagerOpen, setProjectManagerOpen] = useState(false);
   const [tagManagerOpen, setTagManagerOpen] = useState(false);
+  const [workspaceManagerOpen, setWorkspaceManagerOpen] = useState(false);
   const [selectedTagId, setSelectedTagId] = useState<string | null>(null);
   const [collapsed, setCollapsed] = useState(getStoredCollapsed);
   const [expandedSections, setExpandedSections] = useState<Record<SidebarSection, boolean>>({
+    workspaces: true,
     favorites: true,
     projects: true,
     documents: true,
     tags: false,
   });
+  const [expandedWorkspaces, setExpandedWorkspaces] = useState<Record<string, boolean>>({});
+  const [expandedWsProjects, setExpandedWsProjects] = useState<Record<string, boolean>>({});
   const { theme, toggleTheme } = useTheme();
 
   const { data: documents = [], isLoading } = useQuery<Document[]>({
@@ -51,6 +56,10 @@ export function DocSidebar() {
 
   const { data: allTags = [] } = useQuery<Tag[]>({
     queryKey: ["/api/tags"],
+  });
+
+  const { data: workspaces = [] } = useQuery<Workspace[]>({
+    queryKey: ["/api/workspaces"],
   });
 
   const docIds = useMemo(() => documents.map(d => d.id).join(","), [documents]);
@@ -174,8 +183,29 @@ export function DocSidebar() {
     return map;
   }, [allNonFavDocs, projects]);
 
+  const workspaceData = useMemo(() => {
+    const data: Record<string, { projects: Project[]; docs: Document[] }> = {};
+    for (const ws of workspaces) {
+      data[ws.id] = {
+        projects: projects.filter(p => p.workspaceId === ws.id),
+        docs: allNonFavDocs.filter(d => d.workspaceId === ws.id && !d.projectId),
+      };
+    }
+    return data;
+  }, [workspaces, projects, allNonFavDocs]);
+
   const activeDocId = location.startsWith("/doc/") ? location.split("/doc/")[1] : null;
   const isOnDashboard = location === "/";
+
+  const docItemProps = (doc: Document) => ({
+    doc,
+    isActive: activeDocId === doc.id,
+    tags: docTagsMap[doc.id],
+    onNavigate: () => setLocation(`/doc/${doc.id}`),
+    onDelete: () => deleteMutation.mutate(doc.id),
+    onDuplicate: () => duplicateMutation.mutate(doc.id),
+    onToggleFavorite: () => favoriteMutation.mutate(doc.id),
+  });
 
   return (
     <>
@@ -249,6 +279,14 @@ export function DocSidebar() {
                 testId="nav-dashboard"
               />
               <SidebarIconButton
+                icon={Layers}
+                label="Workspaces"
+                badge={workspaces.length || undefined}
+                onClick={() => toggleSection("workspaces")}
+                onPlusClick={() => setWorkspaceManagerOpen(true)}
+                testId="nav-workspaces"
+              />
+              <SidebarIconButton
                 icon={Star}
                 label="Favorites"
                 badge={favoriteDocs.length || undefined}
@@ -291,6 +329,77 @@ export function DocSidebar() {
               />
 
               <NavSection
+                icon={Layers}
+                label="Workspaces"
+                count={workspaces.length}
+                expanded={expandedSections.workspaces}
+                onToggle={() => toggleSection("workspaces")}
+                onPlusClick={() => setWorkspaceManagerOpen(true)}
+                plusTitle="New workspace"
+                testId="nav-workspaces"
+              >
+                {workspaces.length === 0 ? (
+                  <p className="text-xs text-muted-foreground/40 px-2 py-2">No workspaces yet</p>
+                ) : (
+                  <div className="space-y-0.5">
+                    {workspaces.map((ws) => {
+                      const wsData = workspaceData[ws.id] || { projects: [], docs: [] };
+                      const isExpanded = expandedWorkspaces[ws.id] ?? false;
+                      return (
+                        <div key={ws.id}>
+                          <div
+                            className="flex items-center gap-1.5 px-2 py-1 cursor-pointer rounded-md transition-colors hover-elevate"
+                            onClick={() => setExpandedWorkspaces(prev => ({ ...prev, [ws.id]: !prev[ws.id] }))}
+                            data-testid={`sidebar-workspace-${ws.id}`}
+                          >
+                            {isExpanded ? <ChevronDown className="w-3 h-3 text-muted-foreground/40 shrink-0" /> : <ChevronRight className="w-3 h-3 text-muted-foreground/40 shrink-0" />}
+                            <span className="w-2.5 h-2.5 rounded shrink-0" style={{ backgroundColor: ws.color }} />
+                            <span className="text-xs font-medium text-foreground/80 truncate flex-1">{ws.name}</span>
+                            <span className="text-[10px] text-muted-foreground/40">{wsData.projects.length + wsData.docs.length}</span>
+                          </div>
+                          {isExpanded && (
+                            <div className="ml-3 mt-0.5 space-y-0.5">
+                              {wsData.projects.map((proj) => {
+                                const projDocs = docsByProject[proj.id] || [];
+                                const isProjExpanded = expandedWsProjects[proj.id] ?? false;
+                                return (
+                                  <div key={proj.id}>
+                                    <div
+                                      className="flex items-center gap-1.5 px-2 py-1 cursor-pointer rounded-md transition-colors hover-elevate"
+                                      onClick={() => setExpandedWsProjects(prev => ({ ...prev, [proj.id]: !prev[proj.id] }))}
+                                      data-testid={`sidebar-ws-project-${proj.id}`}
+                                    >
+                                      {isProjExpanded ? <ChevronDown className="w-2.5 h-2.5 text-muted-foreground/40 shrink-0" /> : <ChevronRight className="w-2.5 h-2.5 text-muted-foreground/40 shrink-0" />}
+                                      <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: proj.color }} />
+                                      <span className="text-[11px] text-muted-foreground truncate flex-1">{proj.name}</span>
+                                      <span className="text-[10px] text-muted-foreground/40">{projDocs.length}</span>
+                                    </div>
+                                    {isProjExpanded && projDocs.length > 0 && (
+                                      <div className="ml-3 space-y-0.5">
+                                        {projDocs.map((doc) => (
+                                          <DocItem key={doc.id} {...docItemProps(doc)} />
+                                        ))}
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                              {wsData.docs.map((doc) => (
+                                <DocItem key={doc.id} {...docItemProps(doc)} />
+                              ))}
+                              {wsData.projects.length === 0 && wsData.docs.length === 0 && (
+                                <p className="text-[10px] text-muted-foreground/30 px-2 py-1">Empty workspace</p>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </NavSection>
+
+              <NavSection
                 icon={Star}
                 label="Favorites"
                 count={favoriteDocs.length}
@@ -303,16 +412,7 @@ export function DocSidebar() {
                 ) : (
                   <div className="space-y-0.5">
                     {favoriteDocs.map((doc) => (
-                      <DocItem
-                        key={doc.id}
-                        doc={doc}
-                        isActive={activeDocId === doc.id}
-                        tags={docTagsMap[doc.id]}
-                        onNavigate={() => setLocation(`/doc/${doc.id}`)}
-                        onDelete={() => deleteMutation.mutate(doc.id)}
-                        onDuplicate={() => duplicateMutation.mutate(doc.id)}
-                        onToggleFavorite={() => favoriteMutation.mutate(doc.id)}
-                      />
+                      <DocItem key={doc.id} {...docItemProps(doc)} />
                     ))}
                   </div>
                 )}
@@ -344,16 +444,7 @@ export function DocSidebar() {
                           {projectDocs.length > 0 && (
                             <div className="space-y-0.5 ml-1">
                               {projectDocs.map((doc) => (
-                                <DocItem
-                                  key={doc.id}
-                                  doc={doc}
-                                  isActive={activeDocId === doc.id}
-                                  tags={docTagsMap[doc.id]}
-                                  onNavigate={() => setLocation(`/doc/${doc.id}`)}
-                                  onDelete={() => deleteMutation.mutate(doc.id)}
-                                  onDuplicate={() => duplicateMutation.mutate(doc.id)}
-                                  onToggleFavorite={() => favoriteMutation.mutate(doc.id)}
-                                />
+                                <DocItem key={doc.id} {...docItemProps(doc)} />
                               ))}
                             </div>
                           )}
@@ -385,16 +476,7 @@ export function DocSidebar() {
                 ) : (
                   <div className="space-y-0.5">
                     {(docsByProject["_unassigned"] || []).map((doc) => (
-                      <DocItem
-                        key={doc.id}
-                        doc={doc}
-                        isActive={activeDocId === doc.id}
-                        tags={docTagsMap[doc.id]}
-                        onNavigate={() => setLocation(`/doc/${doc.id}`)}
-                        onDelete={() => deleteMutation.mutate(doc.id)}
-                        onDuplicate={() => duplicateMutation.mutate(doc.id)}
-                        onToggleFavorite={() => favoriteMutation.mutate(doc.id)}
-                      />
+                      <DocItem key={doc.id} {...docItemProps(doc)} />
                     ))}
                   </div>
                 )}
@@ -450,6 +532,7 @@ export function DocSidebar() {
       <SearchModal isOpen={searchModalOpen} onClose={() => setSearchModalOpen(false)} />
       <ProjectManager isOpen={projectManagerOpen} onClose={() => setProjectManagerOpen(false)} />
       <TagManager isOpen={tagManagerOpen} onClose={() => setTagManagerOpen(false)} />
+      <WorkspaceManager isOpen={workspaceManagerOpen} onClose={() => setWorkspaceManagerOpen(false)} />
     </>
   );
 }

@@ -1,36 +1,46 @@
-import { useQuery, useMutation } from "@tanstack/react-query";
-import { queryClient, apiRequest } from "@/lib/queryClient";
-import type { Project, Tag } from "@shared/schema";
-import { Calendar, Clock, FolderOpen, TagIcon, Plus, X, ChevronDown } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { queryClient } from "@/lib/queryClient";
+import type { Project, Tag, Workspace } from "@shared/schema";
+import { Calendar, Clock, FolderOpen, TagIcon, Plus, X, ChevronDown, Layers } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { formatDate, relativeTime } from "./doc-card";
 
 interface DocMetadataProps {
   docId: string;
   projectId: string | null;
+  workspaceId: string | null;
   createdAt: string | Date;
   updatedAt: string | Date;
   version: number;
   onProjectChange: (projectId: string | null) => void;
+  onWorkspaceChange: (workspaceId: string | null) => void;
   onTagsChange: (tagIds: string[]) => void;
 }
 
 export function DocMetadata({
   docId,
   projectId,
+  workspaceId,
   createdAt,
   updatedAt,
   version,
   onProjectChange,
+  onWorkspaceChange,
   onTagsChange,
 }: DocMetadataProps) {
   const [showProjectPicker, setShowProjectPicker] = useState(false);
+  const [showWorkspacePicker, setShowWorkspacePicker] = useState(false);
   const [showTagPicker, setShowTagPicker] = useState(false);
   const projectRef = useRef<HTMLDivElement>(null);
+  const workspaceRef = useRef<HTMLDivElement>(null);
   const tagRef = useRef<HTMLDivElement>(null);
 
   const { data: projects = [] } = useQuery<Project[]>({
     queryKey: ["/api/projects"],
+  });
+
+  const { data: workspaces = [] } = useQuery<Workspace[]>({
+    queryKey: ["/api/workspaces"],
   });
 
   const { data: allTags = [] } = useQuery<Tag[]>({
@@ -46,11 +56,15 @@ export function DocMetadata({
   });
 
   const currentProject = projects.find((p) => p.id === projectId);
+  const currentWorkspace = workspaces.find((w) => w.id === workspaceId);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (projectRef.current && !projectRef.current.contains(e.target as Node)) {
         setShowProjectPicker(false);
+      }
+      if (workspaceRef.current && !workspaceRef.current.contains(e.target as Node)) {
+        setShowWorkspacePicker(false);
       }
       if (tagRef.current && !tagRef.current.contains(e.target as Node)) {
         setShowTagPicker(false);
@@ -78,6 +92,55 @@ export function DocMetadata({
 
   return (
     <div className="flex flex-wrap items-center gap-x-4 gap-y-2 py-2 mb-4 text-sm print:hidden" data-testid="doc-metadata">
+      <div className="relative" ref={workspaceRef}>
+        <button
+          onClick={() => setShowWorkspacePicker(!showWorkspacePicker)}
+          className="flex items-center gap-1.5 text-xs text-muted-foreground px-2 py-1 rounded-md transition-colors hover-elevate"
+          data-testid="button-workspace-picker"
+        >
+          {currentWorkspace ? (
+            <>
+              <span className="w-2 h-2 rounded" style={{ backgroundColor: currentWorkspace.color }} />
+              {currentWorkspace.name}
+            </>
+          ) : (
+            <>
+              <Layers className="w-3 h-3" />
+              Add to workspace
+            </>
+          )}
+          <ChevronDown className="w-3 h-3" />
+        </button>
+
+        {showWorkspacePicker && (
+          <div className="absolute z-50 top-full left-0 mt-1 w-48 bg-popover border border-popover-border rounded-lg shadow-lg py-1" data-testid="workspace-picker-dropdown">
+            <button
+              onClick={() => {
+                onWorkspaceChange(null);
+                setShowWorkspacePicker(false);
+              }}
+              className={`w-full text-left px-3 py-1.5 text-xs transition-colors ${!workspaceId ? "bg-accent" : ""} hover-elevate`}
+            >
+              None
+            </button>
+            {workspaces.map((w) => (
+              <button
+                key={w.id}
+                onClick={() => {
+                  onWorkspaceChange(w.id);
+                  setShowWorkspacePicker(false);
+                }}
+                className={`w-full text-left px-3 py-1.5 text-xs flex items-center gap-2 transition-colors ${workspaceId === w.id ? "bg-accent" : ""} hover-elevate`}
+                data-testid={`workspace-option-${w.id}`}
+              >
+                <span className="w-2 h-2 rounded" style={{ backgroundColor: w.color }} />
+                {w.name}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
       <div className="relative" ref={projectRef}>
         <button
           onClick={() => setShowProjectPicker(!showProjectPicker)}

@@ -1,8 +1,21 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertDocumentSchema, insertProjectSchema, insertTagSchema, blockSchema } from "@shared/schema";
+import { insertDocumentSchema, insertProjectSchema, insertTagSchema, insertWorkspaceSchema, blockSchema } from "@shared/schema";
 import { z } from "zod";
+
+const updateWorkspaceSchema = z.object({
+  name: z.string().optional(),
+  color: z.string().optional(),
+  description: z.string().nullable().optional(),
+});
+
+const updateProjectSchema = z.object({
+  name: z.string().optional(),
+  color: z.string().optional(),
+  description: z.string().nullable().optional(),
+  workspaceId: z.string().nullable().optional(),
+});
 
 const updateDocumentSchema = z.object({
   title: z.string().optional(),
@@ -12,6 +25,7 @@ const updateDocumentSchema = z.object({
   sortOrder: z.number().optional(),
   isFavorite: z.boolean().optional(),
   projectId: z.string().nullable().optional(),
+  workspaceId: z.string().nullable().optional(),
   tagIds: z.array(z.string()).optional(),
 });
 
@@ -19,6 +33,35 @@ export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
+
+  app.get("/api/workspaces", async (_req, res) => {
+    const list = await storage.getWorkspaces();
+    res.json(list);
+  });
+
+  app.post("/api/workspaces", async (req, res) => {
+    const parsed = insertWorkspaceSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ message: "Invalid workspace data", errors: parsed.error.flatten() });
+    }
+    const ws = await storage.createWorkspace(parsed.data);
+    res.status(201).json(ws);
+  });
+
+  app.patch("/api/workspaces/:id", async (req, res) => {
+    const parsed = updateWorkspaceSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ message: "Invalid workspace data", errors: parsed.error.flatten() });
+    }
+    const ws = await storage.updateWorkspace(req.params.id, parsed.data);
+    if (!ws) return res.status(404).json({ message: "Workspace not found" });
+    res.json(ws);
+  });
+
+  app.delete("/api/workspaces/:id", async (req, res) => {
+    await storage.deleteWorkspace(req.params.id);
+    res.status(204).send();
+  });
 
   app.get("/api/projects", async (_req, res) => {
     const list = await storage.getProjects();
@@ -35,7 +78,11 @@ export async function registerRoutes(
   });
 
   app.patch("/api/projects/:id", async (req, res) => {
-    const project = await storage.updateProject(req.params.id, req.body);
+    const parsed = updateProjectSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ message: "Invalid project data", errors: parsed.error.flatten() });
+    }
+    const project = await storage.updateProject(req.params.id, parsed.data);
     if (!project) return res.status(404).json({ message: "Project not found" });
     res.json(project);
   });

@@ -1,7 +1,7 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
-import type { Project } from "@shared/schema";
-import { X, Plus, Trash2 } from "lucide-react";
+import type { Project, Workspace } from "@shared/schema";
+import { X, Trash2 } from "lucide-react";
 import { useState } from "react";
 
 const PROJECT_COLORS = [
@@ -18,9 +18,14 @@ export function ProjectManager({ isOpen, onClose }: ProjectManagerProps) {
   const [newName, setNewName] = useState("");
   const [newColor, setNewColor] = useState(PROJECT_COLORS[0]);
   const [newDesc, setNewDesc] = useState("");
+  const [newWorkspaceId, setNewWorkspaceId] = useState<string | null>(null);
 
   const { data: projects = [] } = useQuery<Project[]>({
     queryKey: ["/api/projects"],
+  });
+
+  const { data: workspaces = [] } = useQuery<Workspace[]>({
+    queryKey: ["/api/workspaces"],
   });
 
   const createMutation = useMutation({
@@ -29,6 +34,7 @@ export function ProjectManager({ isOpen, onClose }: ProjectManagerProps) {
         name: newName,
         color: newColor,
         description: newDesc || undefined,
+        workspaceId: newWorkspaceId,
       });
       return res.json();
     },
@@ -36,6 +42,7 @@ export function ProjectManager({ isOpen, onClose }: ProjectManagerProps) {
       queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
       setNewName("");
       setNewDesc("");
+      setNewWorkspaceId(null);
     },
   });
 
@@ -79,6 +86,22 @@ export function ProjectManager({ isOpen, onClose }: ProjectManagerProps) {
             data-testid="input-project-desc"
           />
 
+          {workspaces.length > 0 && (
+            <div className="mb-2">
+              <select
+                value={newWorkspaceId || ""}
+                onChange={(e) => setNewWorkspaceId(e.target.value || null)}
+                className="w-full h-8 px-3 text-sm bg-background border border-border rounded-md outline-none focus:ring-1 focus:ring-primary"
+                data-testid="select-project-workspace"
+              >
+                <option value="">No workspace</option>
+                {workspaces.map((ws) => (
+                  <option key={ws.id} value={ws.id}>{ws.name}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
           <div className="flex gap-1.5 mb-3">
             {PROJECT_COLORS.map((c) => (
               <button
@@ -103,28 +126,39 @@ export function ProjectManager({ isOpen, onClose }: ProjectManagerProps) {
             {projects.length === 0 ? (
               <p className="text-xs text-muted-foreground/60 text-center py-4">No projects created yet</p>
             ) : (
-              projects.map((project) => (
-                <div key={project.id} className="flex items-center gap-2 px-2 py-1.5 rounded-md group">
-                  <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: project.color }} />
-                  <div className="flex-1 min-w-0">
-                    <span className="text-sm text-foreground truncate block">{project.name}</span>
-                    {project.description && (
-                      <span className="text-[11px] text-muted-foreground truncate block">{project.description}</span>
-                    )}
+              projects.map((project) => {
+                const projWs = workspaces.find(w => w.id === project.workspaceId);
+                return (
+                  <div key={project.id} className="flex items-center gap-2 px-2 py-1.5 rounded-md group">
+                    <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: project.color }} />
+                    <div className="flex-1 min-w-0">
+                      <span className="text-sm text-foreground truncate block">{project.name}</span>
+                      <div className="flex items-center gap-1">
+                        {project.description && (
+                          <span className="text-[11px] text-muted-foreground truncate">{project.description}</span>
+                        )}
+                        {projWs && (
+                          <span className="text-[10px] text-muted-foreground/60 flex items-center gap-0.5">
+                            <span className="w-1.5 h-1.5 rounded" style={{ backgroundColor: projWs.color }} />
+                            {projWs.name}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => {
+                        if (confirm(`Delete project "${project.name}"?`)) {
+                          deleteMutation.mutate(project.id);
+                        }
+                      }}
+                      className="w-5 h-5 flex items-center justify-center rounded text-muted-foreground/40 opacity-0 group-hover:opacity-100 transition-opacity hover-elevate"
+                      data-testid={`button-delete-project-${project.id}`}
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </button>
                   </div>
-                  <button
-                    onClick={() => {
-                      if (confirm(`Delete project "${project.name}"?`)) {
-                        deleteMutation.mutate(project.id);
-                      }
-                    }}
-                    className="w-5 h-5 flex items-center justify-center rounded text-muted-foreground/40 opacity-0 group-hover:opacity-100 transition-opacity hover-elevate"
-                    data-testid={`button-delete-project-${project.id}`}
-                  >
-                    <Trash2 className="w-3 h-3" />
-                  </button>
-                </div>
-              ))
+                );
+              })
             )}
           </div>
         </div>

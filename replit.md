@@ -17,7 +17,8 @@ client/src/
     home.tsx           - Dashboard with calendar view, project view, recent docs, templates
     editor.tsx         - Document editor with metadata bar, version history, status bar
   components/
-    doc-sidebar.tsx    - Collapsible sidebar (260px/56px) with 5 nav sections: Dashboard, Favorites, Projects, Documents, Tags
+    doc-sidebar.tsx    - Collapsible sidebar (260px/56px) with 6 nav sections: Dashboard, Workspaces, Favorites, Projects, Documents, Tags
+    workspace-manager.tsx - Modal to create/delete workspaces
     block-editor.tsx   - Core block editor with undo/redo, smart list continuation
     block-item.tsx     - Individual block rendering with markdown shortcuts, keyboard formatting
     slash-command-menu.tsx - "/" command palette with categories
@@ -68,7 +69,8 @@ shared/
 - **Tags**: Color-coded tags, assign multiple tags per doc, filter by tag in sidebar
 - **Version History**: Save snapshots, browse history, restore previous versions
 - **Metadata Bar**: Project selector, tag pills, created/modified dates in editor
-- **Status Bar**: Save status indicator, version number, project name
+- **Status Bar**: Save status indicator, version number, workspace name, project name
+- **Workspaces**: Top-level organizational layer above projects; assign projects and documents to workspaces; sidebar section with nested hierarchy; dashboard workspace filter
 
 ## Design Tokens
 - Font: Inter (sans), JetBrains Mono (code)
@@ -77,8 +79,9 @@ shared/
 - Dark mode CSS variables defined in index.css .dark class
 
 ## Database Schema
-- `documents` - id, title, blocks (jsonb), icon, coverColor, isFavorite, projectId, version, updatedAt, createdAt, sortOrder
-- `projects` - id, name (unique), color, description, createdAt
+- `workspaces` - id, name (unique), color, description, createdAt
+- `documents` - id, title, blocks (jsonb), icon, coverColor, isFavorite, projectId, workspaceId, version, updatedAt, createdAt, sortOrder
+- `projects` - id, name (unique), color, description, workspaceId, createdAt
 - `tags` - id, name (unique), color
 - `documentTags` - documentId, tagId (composite PK)
 - `documentVersions` - id, documentId, version, title, blocks (jsonb), createdAt
@@ -94,11 +97,15 @@ shared/
 - POST /api/documents/:id/favorite - Toggle favorite
 - POST /api/documents/:id/versions - Save version snapshot
 - POST /api/documents/:id/versions/:version/restore - Restore version
-- PATCH /api/documents/:id - Update document (accepts projectId, tagIds)
+- PATCH /api/documents/:id - Update document (accepts projectId, workspaceId, tagIds)
 - DELETE /api/documents/:id - Delete document
+- GET /api/workspaces - List workspaces
+- POST /api/workspaces - Create workspace
+- PATCH /api/workspaces/:id - Update workspace
+- DELETE /api/workspaces/:id - Delete workspace (unassigns projects/documents)
 - GET /api/projects - List projects
-- POST /api/projects - Create project
-- PATCH /api/projects/:id - Update project
+- POST /api/projects - Create project (accepts workspaceId)
+- PATCH /api/projects/:id - Update project (accepts workspaceId)
 - DELETE /api/projects/:id - Delete project
 - GET /api/tags - List tags
 - POST /api/tags - Create tag

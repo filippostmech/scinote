@@ -8,12 +8,15 @@ import {
   type Tag,
   type InsertTag,
   type DocumentVersion,
+  type Workspace,
+  type InsertWorkspace,
   users,
   documents,
   projects,
   tags,
   documentTags,
   documentVersions,
+  workspaces,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, sql, or, ilike, and } from "drizzle-orm";
@@ -44,6 +47,11 @@ export interface IStorage {
   createDocumentVersion(documentId: string): Promise<DocumentVersion | undefined>;
   getDocumentVersion(documentId: string, version: number): Promise<DocumentVersion | undefined>;
   restoreDocumentVersion(documentId: string, version: number): Promise<Document | undefined>;
+  getWorkspaces(): Promise<Workspace[]>;
+  getWorkspace(id: string): Promise<Workspace | undefined>;
+  createWorkspace(data: InsertWorkspace): Promise<Workspace>;
+  updateWorkspace(id: string, data: Partial<InsertWorkspace>): Promise<Workspace | undefined>;
+  deleteWorkspace(id: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -116,6 +124,7 @@ export class DatabaseStorage implements IStorage {
         icon: original.icon,
         coverColor: original.coverColor,
         projectId: original.projectId,
+        workspaceId: original.workspaceId,
       })
       .returning();
     const originalTags = await this.getDocumentTags(id);
@@ -249,6 +258,35 @@ export class DatabaseStorage implements IStorage {
       .where(eq(documents.id, documentId))
       .returning();
     return updated;
+  }
+
+  async getWorkspaces(): Promise<Workspace[]> {
+    return db.select().from(workspaces).orderBy(workspaces.name);
+  }
+
+  async getWorkspace(id: string): Promise<Workspace | undefined> {
+    const [ws] = await db.select().from(workspaces).where(eq(workspaces.id, id));
+    return ws;
+  }
+
+  async createWorkspace(data: InsertWorkspace): Promise<Workspace> {
+    const [created] = await db.insert(workspaces).values(data).returning();
+    return created;
+  }
+
+  async updateWorkspace(id: string, data: Partial<InsertWorkspace>): Promise<Workspace | undefined> {
+    const [updated] = await db
+      .update(workspaces)
+      .set(data)
+      .where(eq(workspaces.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteWorkspace(id: string): Promise<void> {
+    await db.update(projects).set({ workspaceId: null }).where(eq(projects.workspaceId, id));
+    await db.update(documents).set({ workspaceId: null }).where(eq(documents.workspaceId, id));
+    await db.delete(workspaces).where(eq(workspaces.id, id));
   }
 }
 

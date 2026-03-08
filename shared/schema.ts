@@ -25,11 +25,27 @@ export const blockSchema = z.object({
 
 export type Block = z.infer<typeof blockSchema>;
 
+export const workspaces = pgTable("workspaces", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull().unique(),
+  color: text("color").notNull().default("#2EAADC"),
+  description: text("description"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertWorkspaceSchema = createInsertSchema(workspaces).omit({
+  id: true,
+  createdAt: true,
+});
+export type InsertWorkspace = z.infer<typeof insertWorkspaceSchema>;
+export type Workspace = typeof workspaces.$inferSelect;
+
 export const projects = pgTable("projects", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   name: text("name").notNull().unique(),
   color: text("color").notNull().default("#2EAADC"),
   description: text("description"),
+  workspaceId: varchar("workspace_id"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -60,6 +76,7 @@ export const documents = pgTable("documents", {
   coverColor: text("cover_color"),
   isFavorite: boolean("is_favorite").default(false).notNull(),
   projectId: varchar("project_id"),
+  workspaceId: varchar("workspace_id"),
   version: integer("version").default(1).notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),

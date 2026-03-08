@@ -2,7 +2,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useCallback, useEffect, useRef, useState, useMemo } from "react";
 import { useRoute } from "wouter";
-import type { Document, Block, Project } from "@shared/schema";
+import type { Document, Block, Project, Workspace } from "@shared/schema";
 import { BlockEditor } from "@/components/block-editor";
 import { Loader2, Download, FileText, ChevronDown, Clock } from "lucide-react";
 import { downloadMarkdown } from "@/lib/export";
@@ -31,8 +31,12 @@ export default function EditorPage() {
     queryKey: ["/api/projects"],
   });
 
+  const { data: workspaces = [] } = useQuery<Workspace[]>({
+    queryKey: ["/api/workspaces"],
+  });
+
   const updateMutation = useMutation({
-    mutationFn: async (data: { title?: string; blocks?: Block[]; projectId?: string | null; tagIds?: string[] }) => {
+    mutationFn: async (data: { title?: string; blocks?: Block[]; projectId?: string | null; workspaceId?: string | null; tagIds?: string[] }) => {
       setSaveStatus("saving");
       const res = await apiRequest("PATCH", `/api/documents/${docId}`, data);
       return res.json();
@@ -76,6 +80,13 @@ export default function EditorPage() {
   const handleProjectChange = useCallback(
     (projectId: string | null) => {
       updateMutation.mutate({ projectId });
+    },
+    [updateMutation],
+  );
+
+  const handleWorkspaceChange = useCallback(
+    (workspaceId: string | null) => {
+      updateMutation.mutate({ workspaceId });
     },
     [updateMutation],
   );
@@ -133,6 +144,11 @@ export default function EditorPage() {
     if (!doc?.projectId) return null;
     return projects.find(p => p.id === doc.projectId) || null;
   }, [doc?.projectId, projects]);
+
+  const currentWorkspace = useMemo(() => {
+    if (!doc?.workspaceId) return null;
+    return workspaces.find(w => w.id === doc.workspaceId) || null;
+  }, [doc?.workspaceId, workspaces]);
 
   if (isLoading) {
     return (
@@ -204,10 +220,12 @@ export default function EditorPage() {
             <DocMetadata
               docId={doc.id}
               projectId={doc.projectId}
+              workspaceId={doc.workspaceId}
               createdAt={doc.createdAt}
               updatedAt={doc.updatedAt}
               version={doc.version}
               onProjectChange={handleProjectChange}
+              onWorkspaceChange={handleWorkspaceChange}
               onTagsChange={handleTagsChange}
             />
 
@@ -233,6 +251,12 @@ export default function EditorPage() {
             {saveStatus === "saved" ? "Saved" : saveStatus === "saving" ? "Saving..." : "Unsaved"}
           </span>
           <span data-testid="text-version">v{doc.version}</span>
+          {currentWorkspace && (
+            <span className="flex items-center gap-1" data-testid="text-workspace-name">
+              <span className="w-1.5 h-1.5 rounded" style={{ backgroundColor: currentWorkspace.color }} />
+              {currentWorkspace.name}
+            </span>
+          )}
           {currentProject && (
             <span className="flex items-center gap-1" data-testid="text-project-name">
               <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: currentProject.color }} />
