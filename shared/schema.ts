@@ -21,7 +21,7 @@ export const blockSchema = z.object({
   ]),
   content: z.string(),
   meta: z.object({
-    align: z.enum(["left", "center", "right"]).optional(),
+    align: z.enum(["left", "center", "right"]).default("left"),
   }).catchall(z.any()).optional(),
 });
 
