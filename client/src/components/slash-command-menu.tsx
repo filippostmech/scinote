@@ -104,6 +104,7 @@ export function SlashCommandMenu({ position, filter, onSelect, onClose }: SlashC
         className="fixed z-50 bg-popover border border-popover-border rounded-lg shadow-lg p-2 w-72"
         style={{ left: position.x, top: position.y }}
         data-testid="slash-menu-empty"
+        onMouseDown={(e) => e.preventDefault()}
       >
         <p className="text-sm text-muted-foreground px-2 py-1">No results</p>
       </div>
