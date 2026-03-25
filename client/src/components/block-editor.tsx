@@ -9,7 +9,7 @@ function generateId() {
 }
 
 function createBlock(type: Block["type"] = "text", content = "", meta?: Record<string, any>): Block {
-  return { id: generateId(), type, content, meta };
+  return { id: generateId(), type, content, meta: { align: "left" as const, ...meta } };
 }
 
 const MAX_HISTORY = 50;

@@ -20,7 +20,9 @@ export const blockSchema = z.object({
     "image",
   ]),
   content: z.string(),
-  meta: z.record(z.string(), z.any()).optional(),
+  meta: z.object({
+    align: z.enum(["left", "center", "right"]).default("left"),
+  }).catchall(z.any()).optional(),
 });
 
 export type Block = z.infer<typeof blockSchema>;
