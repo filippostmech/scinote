@@ -61,17 +61,21 @@ export function SlashCommandMenu({ position, filter, onSelect, onClose }: SlashC
     (e: KeyboardEvent) => {
       if (e.key === "ArrowDown") {
         e.preventDefault();
+        e.stopPropagation();
         setSelectedIndex((i) => Math.min(i + 1, filteredCommands.length - 1));
       } else if (e.key === "ArrowUp") {
         e.preventDefault();
+        e.stopPropagation();
         setSelectedIndex((i) => Math.max(i - 1, 0));
       } else if (e.key === "Enter") {
         e.preventDefault();
+        e.stopPropagation();
         if (filteredCommands[selectedIndex]) {
           onSelect(filteredCommands[selectedIndex].type);
         }
       } else if (e.key === "Escape") {
         e.preventDefault();
+        e.stopPropagation();
         onClose();
       }
     },
@@ -115,6 +119,7 @@ export function SlashCommandMenu({ position, filter, onSelect, onClose }: SlashC
       className="fixed z-50 bg-popover border border-popover-border rounded-lg shadow-lg py-1 w-72 max-h-80 overflow-y-auto"
       style={{ left: position.x, top: position.y }}
       data-testid="slash-menu"
+      onMouseDown={(e) => e.preventDefault()}
     >
       {categories.map((cat) => {
         const catCommands = filteredCommands.filter((c) => c.category === cat);

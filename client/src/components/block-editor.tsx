@@ -43,6 +43,11 @@ export function BlockEditor({ blocks: initialBlocks, onChange }: BlockEditorProp
   const historyRef = useRef<Block[][]>([]);
   const futureRef = useRef<Block[][]>([]);
   const isUndoRedoRef = useRef(false);
+  const slashMenuOpenRef = useRef(false);
+
+  useEffect(() => {
+    slashMenuOpenRef.current = slashMenu !== null;
+  }, [slashMenu]);
 
   useEffect(() => {
     if (JSON.stringify(initialBlocks) !== JSON.stringify(initialBlocksRef.current)) {
@@ -199,7 +204,7 @@ export function BlockEditor({ blocks: initialBlocks, onChange }: BlockEditorProp
       const block = blocks[blockIndex];
 
       if (e.key === "Enter" && !e.shiftKey) {
-        if (slashMenu) return;
+        if (slashMenu || slashMenuOpenRef.current) return;
         e.preventDefault();
 
         const listTypes: Block["type"][] = ["bulleted-list", "numbered-list"];
@@ -272,6 +277,7 @@ export function BlockEditor({ blocks: initialBlocks, onChange }: BlockEditorProp
 
   const handleSlashCommand = useCallback(
     (blockId: string, position: { x: number; y: number }) => {
+      slashMenuOpenRef.current = true;
       setSlashMenu({ blockId, position, filter: "" });
     },
     [],
@@ -290,9 +296,19 @@ export function BlockEditor({ blocks: initialBlocks, onChange }: BlockEditorProp
     (type: Block["type"]) => {
       if (!slashMenu) return;
       pushHistory(blocks);
+      const blockWrapper = document.querySelector(`[data-block-id="${slashMenu.blockId}"]`) as HTMLElement | null;
+      const editableEl = blockWrapper?.querySelector("[contenteditable]") as HTMLElement | null;
+      const plainText = editableEl ? (editableEl.innerText ?? editableEl.textContent ?? "") : "";
+      const slashAndFilter = "/" + slashMenu.filter;
+      const lastSlashIdx = plainText.lastIndexOf(slashAndFilter);
+      const cleanContent = lastSlashIdx >= 0
+        ? plainText.slice(0, lastSlashIdx).trimEnd()
+        : plainText.replace(/\/[^\s]*$/, "").trimEnd();
+      if (editableEl && type !== "divider" && type !== "table" && type !== "image") {
+        editableEl.innerHTML = cleanContent;
+      }
       const newBlocks = blocks.map((b) => {
         if (b.id === slashMenu.blockId) {
-          const cleanContent = b.content.replace(/\/[^\s]*$/, "").trim();
           if (type === "table") {
             return { ...b, type, content: "", meta: { tableData: [["", "", ""], ["", "", ""], ["", "", ""]] } };
           }
