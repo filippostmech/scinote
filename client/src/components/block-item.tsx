@@ -453,7 +453,7 @@ export const BlockItem = forwardRef<HTMLDivElement, BlockItemProps>(
           )}
           {block.type === "bulleted-list" && (
             <div className={`flex items-start gap-2 ${alignClass}`}>
-              <span className="select-none text-foreground/50 mt-[2px] text-lg leading-[1.625]">•</span>
+              <span className="select-none text-foreground/50 text-base leading-[1.625] flex items-center h-[1.625em]">•</span>
               <div
                 ref={contentRef}
                 contentEditable
@@ -471,7 +471,7 @@ export const BlockItem = forwardRef<HTMLDivElement, BlockItemProps>(
           )}
           {block.type === "numbered-list" && (
             <div className={`flex items-start gap-2 ${alignClass}`}>
-              <span className="select-none text-foreground/50 mt-[1px] text-base leading-[1.625] min-w-[1.2em] text-right tabular-nums">{listIndex || 1}.</span>
+              <span className="select-none text-foreground/50 text-base leading-[1.625] min-w-[1.2em] text-right tabular-nums flex items-center h-[1.625em]">{listIndex || 1}.</span>
               <div
                 ref={contentRef}
                 contentEditable
