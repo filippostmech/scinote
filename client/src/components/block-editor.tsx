@@ -178,7 +178,7 @@ export function BlockEditor({ blocks: initialBlocks, onChange }: BlockEditorProp
   const handleBlockMetaChange = useCallback(
     (blockId: string, meta: Record<string, any>) => {
       const newBlocks = blocks.map((b) =>
-        b.id === blockId ? { ...b, meta } : b,
+        b.id === blockId ? { ...b, meta: { align: b.meta?.align || "left", ...meta } } : b,
       );
       updateBlocksSilent(newBlocks);
     },
