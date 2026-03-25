@@ -262,7 +262,7 @@ export const BlockItem = forwardRef<HTMLDivElement, BlockItemProps>(
         <div
           ref={ref}
           data-block-id={block.id}
-          className={`group relative flex items-start py-2 ${dropIndicatorClass} ${isDragging ? "opacity-30" : ""}`}
+          className={`group relative py-2 ${dropIndicatorClass} ${isDragging ? "opacity-30" : ""}`}
           onMouseEnter={() => setIsHovered(true)}
           onMouseLeave={() => setIsHovered(false)}
           onDragOver={onDragOver}
@@ -278,7 +278,7 @@ export const BlockItem = forwardRef<HTMLDivElement, BlockItemProps>(
             onDragEnd={onDragEnd}
             blockType={block.type}
           />
-          <div className="flex-1 ml-1">
+          <div>
             {block.content ? (
               <div className="my-2">
                 <img
@@ -316,7 +316,7 @@ export const BlockItem = forwardRef<HTMLDivElement, BlockItemProps>(
         <div
           ref={ref}
           data-block-id={block.id}
-          className={`group relative flex items-start ${dropIndicatorClass} ${isDragging ? "opacity-30" : ""}`}
+          className={`group relative ${dropIndicatorClass} ${isDragging ? "opacity-30" : ""}`}
           onMouseEnter={() => setIsHovered(true)}
           onMouseLeave={() => setIsHovered(false)}
           onDragOver={onDragOver}
@@ -332,7 +332,7 @@ export const BlockItem = forwardRef<HTMLDivElement, BlockItemProps>(
             onDragEnd={onDragEnd}
             blockType={block.type}
           />
-          <div className="flex-1 ml-1">
+          <div>
             <TableBlock
               meta={block.meta}
               onMetaChange={(meta) => onMetaChange(meta)}
@@ -347,7 +347,7 @@ export const BlockItem = forwardRef<HTMLDivElement, BlockItemProps>(
         <div
           ref={ref}
           data-block-id={block.id}
-          className={`group relative flex items-center py-2 ${dropIndicatorClass} ${isDragging ? "opacity-30" : ""}`}
+          className={`group relative py-2 ${dropIndicatorClass} ${isDragging ? "opacity-30" : ""}`}
           onMouseEnter={() => setIsHovered(true)}
           onMouseLeave={() => setIsHovered(false)}
           onDragOver={onDragOver}
@@ -363,7 +363,7 @@ export const BlockItem = forwardRef<HTMLDivElement, BlockItemProps>(
             onDragEnd={onDragEnd}
             blockType={block.type}
           />
-          <div className="flex-1 ml-1">
+          <div>
             <hr className="border-t border-border" />
           </div>
         </div>
@@ -378,7 +378,7 @@ export const BlockItem = forwardRef<HTMLDivElement, BlockItemProps>(
       <div
         ref={ref}
         data-block-id={block.id}
-        className={`group relative flex items-start ${dropIndicatorClass} ${isDragging ? "opacity-30 scale-[0.98] transition-transform" : "transition-transform"}`}
+        className={`group relative ${dropIndicatorClass} ${isDragging ? "opacity-30 scale-[0.98] transition-transform" : "transition-transform"}`}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
         onDragOver={onDragOver}
@@ -396,7 +396,7 @@ export const BlockItem = forwardRef<HTMLDivElement, BlockItemProps>(
           currentAlign={block.meta?.align || "left"}
           onAlignChange={(align: string) => onMetaChange({ ...block.meta, align })}
         />
-        <div className={`flex-1 min-w-0 ${getWrapperStyles(block.type)}`}>
+        <div className={`${getWrapperStyles(block.type)}`}>
           {block.type === "callout" && (
             <div className={`flex items-start gap-3 p-4 rounded-md bg-accent/50 ${alignClass}`}>
               <span className="text-xl mt-0.5 select-none">💡</span>
@@ -531,21 +531,21 @@ function BlockControls({
   currentAlign?: string;
   onAlignChange?: (align: string) => void;
 }) {
-  const controlsPadding = (() => {
+  const controlsTop = (() => {
     switch (blockType) {
-      case "heading1": return "pt-[35px]";
-      case "heading2": return "pt-[27px]";
-      case "heading3": return "pt-[19px]";
-      case "code": return "pt-[11px]";
-      case "quote": return "pt-[15px]";
-      case "callout": return "pt-[11px]";
-      default: return "pt-[3px]";
+      case "heading1": return "top-[35px]";
+      case "heading2": return "top-[27px]";
+      case "heading3": return "top-[19px]";
+      case "code": return "top-[11px]";
+      case "quote": return "top-[15px]";
+      case "callout": return "top-[11px]";
+      default: return "top-[3px]";
     }
   })();
 
   return (
     <div
-      className={`flex items-center gap-0.5 mr-1 ${controlsPadding} shrink-0`}
+      className={`absolute ${controlsTop} -left-[52px] flex items-center gap-0.5`}
       style={{ visibility: isVisible ? "visible" : "hidden" }}
     >
       <button
