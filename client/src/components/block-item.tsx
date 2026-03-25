@@ -531,9 +531,21 @@ function BlockControls({
   currentAlign?: string;
   onAlignChange?: (align: string) => void;
 }) {
+  const controlsPadding = (() => {
+    switch (blockType) {
+      case "heading1": return "pt-[35px]";
+      case "heading2": return "pt-[27px]";
+      case "heading3": return "pt-[19px]";
+      case "code": return "pt-[11px]";
+      case "quote": return "pt-[15px]";
+      case "callout": return "pt-[11px]";
+      default: return "pt-[3px]";
+    }
+  })();
+
   return (
     <div
-      className="flex items-center gap-0.5 mr-1 pt-[3px] shrink-0"
+      className={`flex items-center gap-0.5 mr-1 ${controlsPadding} shrink-0`}
       style={{ visibility: isVisible ? "visible" : "hidden" }}
     >
       <button
