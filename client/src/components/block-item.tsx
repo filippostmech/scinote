@@ -645,17 +645,17 @@ function getBlockStyles(type: Block["type"]): string {
 function getWrapperStyles(type: Block["type"]): string {
   switch (type) {
     case "heading1":
-      return "mt-8 mb-1";
+      return "pt-8 pb-1";
     case "heading2":
-      return "mt-6 mb-1";
+      return "pt-6 pb-1";
     case "heading3":
-      return "mt-4 mb-1";
+      return "pt-4 pb-1";
     case "code":
-      return "my-2";
+      return "py-2";
     case "quote":
-      return "my-3";
+      return "py-3";
     case "callout":
-      return "my-2";
+      return "py-2";
     default:
       return "py-[3px]";
   }
