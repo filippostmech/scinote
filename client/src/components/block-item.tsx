@@ -1,6 +1,6 @@
 import { forwardRef, useRef, useCallback, useState, useEffect } from "react";
 import type { Block } from "@shared/schema";
-import { GripVertical, Plus, Trash2, Type, Heading1, Heading2, Heading3, List, ListOrdered, Code2, Quote, Minus, MessageSquare, Table2, ImageIcon, Upload } from "lucide-react";
+import { GripVertical, Plus, Trash2, Type, Heading1, Heading2, Heading3, List, ListOrdered, Code2, Quote, Minus, MessageSquare, Table2, ImageIcon, Upload, AlignLeft, AlignCenter, AlignRight } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -372,6 +372,7 @@ export const BlockItem = forwardRef<HTMLDivElement, BlockItemProps>(
 
     const blockStyles = getBlockStyles(block.type);
     const placeholder = getPlaceholder(block.type, index);
+    const alignClass = getAlignClass(block.meta?.align);
 
     return (
       <div
@@ -392,10 +393,12 @@ export const BlockItem = forwardRef<HTMLDivElement, BlockItemProps>(
           onDragStart={onDragStart}
           onDragEnd={onDragEnd}
           blockType={block.type}
+          currentAlign={block.meta?.align || "left"}
+          onAlignChange={(align: string) => onMetaChange({ ...block.meta, align })}
         />
         <div className={`flex-1 min-w-0 ${getWrapperStyles(block.type)}`}>
           {block.type === "callout" && (
-            <div className="flex items-start gap-3 p-4 rounded-md bg-accent/50">
+            <div className={`flex items-start gap-3 p-4 rounded-md bg-accent/50 ${alignClass}`}>
               <span className="text-xl mt-0.5 select-none">💡</span>
               <div
                 ref={contentRef}
@@ -414,7 +417,7 @@ export const BlockItem = forwardRef<HTMLDivElement, BlockItemProps>(
           )}
           {block.type === "code" && (
             <div className="rounded-md overflow-hidden">
-              <pre className="bg-muted dark:bg-muted p-4 rounded-md overflow-x-auto">
+              <pre className={`bg-muted dark:bg-muted p-4 rounded-md overflow-x-auto ${alignClass}`}>
                 <code
                   ref={contentRef}
                   contentEditable
@@ -432,7 +435,7 @@ export const BlockItem = forwardRef<HTMLDivElement, BlockItemProps>(
             </div>
           )}
           {block.type === "quote" && (
-            <div className="border-l-[3px] border-foreground/20 pl-4">
+            <div className={`border-l-[3px] border-foreground/20 pl-4 ${alignClass}`}>
               <div
                 ref={contentRef}
                 contentEditable
@@ -449,7 +452,7 @@ export const BlockItem = forwardRef<HTMLDivElement, BlockItemProps>(
             </div>
           )}
           {block.type === "bulleted-list" && (
-            <div className="flex items-start gap-2">
+            <div className={`flex items-start gap-2 ${alignClass}`}>
               <span className="select-none text-foreground/50 mt-[2px] text-lg leading-[1.625]">•</span>
               <div
                 ref={contentRef}
@@ -467,7 +470,7 @@ export const BlockItem = forwardRef<HTMLDivElement, BlockItemProps>(
             </div>
           )}
           {block.type === "numbered-list" && (
-            <div className="flex items-start gap-2">
+            <div className={`flex items-start gap-2 ${alignClass}`}>
               <span className="select-none text-foreground/50 mt-[1px] text-base leading-[1.625] min-w-[1.2em] text-right tabular-nums">{listIndex || 1}.</span>
               <div
                 ref={contentRef}
@@ -490,7 +493,7 @@ export const BlockItem = forwardRef<HTMLDivElement, BlockItemProps>(
               contentEditable
               suppressContentEditableWarning
               dir="ltr"
-              className={`outline-none ${blockStyles}`}
+              className={`outline-none ${blockStyles} ${alignClass}`}
               data-placeholder={placeholder}
               onInput={handleInput}
               onKeyDown={handleKeyDown}
@@ -515,6 +518,8 @@ function BlockControls({
   onDragStart,
   onDragEnd,
   blockType,
+  currentAlign,
+  onAlignChange,
 }: {
   isVisible: boolean;
   onAddBlock: () => void;
@@ -523,6 +528,8 @@ function BlockControls({
   onDragStart: () => void;
   onDragEnd: () => void;
   blockType: Block["type"];
+  currentAlign?: string;
+  onAlignChange?: (align: string) => void;
 }) {
   return (
     <div
@@ -556,6 +563,33 @@ function BlockControls({
             Delete
           </DropdownMenuItem>
           <DropdownMenuSeparator />
+          {onAlignChange && (
+            <>
+              <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">Alignment</div>
+              <div className="flex items-center gap-1 px-2 pb-1.5">
+                {([
+                  { value: "left", icon: AlignLeft, label: "Left" },
+                  { value: "center", icon: AlignCenter, label: "Center" },
+                  { value: "right", icon: AlignRight, label: "Right" },
+                ] as const).map(({ value, icon: Icon, label }) => (
+                  <button
+                    key={value}
+                    onClick={() => onAlignChange(value)}
+                    className={`w-8 h-8 flex items-center justify-center rounded-md transition-colors duration-100 ${
+                      (currentAlign || "left") === value
+                        ? "bg-accent text-foreground"
+                        : "text-muted-foreground hover-elevate"
+                    }`}
+                    title={label}
+                    data-testid={`menu-align-${value}`}
+                  >
+                    <Icon className="w-4 h-4" />
+                  </button>
+                ))}
+              </div>
+              <DropdownMenuSeparator />
+            </>
+          )}
           <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">Turn into</div>
           {(Object.keys(blockTypeLabels) as Block["type"][]).map((type) => {
             const Icon = blockTypeIcons[type];
@@ -634,6 +668,17 @@ function getPlaceholder(type: Block["type"], index: number): string {
     case "callout":
       return "Type something...";
     default:
-      return index === 0 ? "Type '/' for commands..." : "Type '/' for commands...";
+      return index === 0 ? "Type '/' for commands..." : "";
+  }
+}
+
+function getAlignClass(align?: string): string {
+  switch (align) {
+    case "center":
+      return "text-center";
+    case "right":
+      return "text-right";
+    default:
+      return "text-left";
   }
 }

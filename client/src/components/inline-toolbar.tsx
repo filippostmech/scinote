@@ -1,12 +1,14 @@
 import { useCallback, useRef, useEffect } from "react";
-import { Bold, Italic, Underline, Strikethrough, Link, Highlighter, Code } from "lucide-react";
+import { Bold, Italic, Underline, Strikethrough, Link, Highlighter, Code, AlignLeft, AlignCenter, AlignRight } from "lucide-react";
 
 interface InlineToolbarProps {
   position: { x: number; y: number };
   blockId: string;
+  currentAlign?: string;
+  onAlignChange?: (align: string) => void;
 }
 
-export function InlineToolbar({ position }: InlineToolbarProps) {
+export function InlineToolbar({ position, currentAlign, onAlignChange }: InlineToolbarProps) {
   const toolbarRef = useRef<HTMLDivElement>(null);
 
   const execCommand = useCallback((command: string, value?: string) => {
@@ -102,6 +104,30 @@ export function InlineToolbar({ position }: InlineToolbarProps) {
       <ToolbarButton onClick={handleLink} title="Link" testId="toolbar-link">
         <Link className="w-4 h-4" />
       </ToolbarButton>
+      {onAlignChange && (
+        <>
+          <div className="w-px h-5 bg-border mx-0.5" />
+          {([
+            { value: "left", icon: AlignLeft, label: "Align left" },
+            { value: "center", icon: AlignCenter, label: "Align center" },
+            { value: "right", icon: AlignRight, label: "Align right" },
+          ] as const).map(({ value, icon: Icon, label }) => (
+            <button
+              key={value}
+              className={`w-7 h-7 flex items-center justify-center rounded-md transition-colors duration-100 ${
+                (currentAlign || "left") === value
+                  ? "bg-accent text-foreground"
+                  : "text-foreground/70 hover-elevate"
+              }`}
+              onClick={() => onAlignChange(value)}
+              title={label}
+              data-testid={`toolbar-align-${value}`}
+            >
+              <Icon className="w-4 h-4" />
+            </button>
+          ))}
+        </>
+      )}
     </div>
   );
 }

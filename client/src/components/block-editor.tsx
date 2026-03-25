@@ -522,6 +522,13 @@ export function BlockEditor({ blocks: initialBlocks, onChange }: BlockEditorProp
         <InlineToolbar
           position={inlineToolbar.position}
           blockId={inlineToolbar.blockId}
+          currentAlign={blocks.find((b) => b.id === inlineToolbar.blockId)?.meta?.align || "left"}
+          onAlignChange={(align: string) => {
+            const block = blocks.find((b) => b.id === inlineToolbar.blockId);
+            if (block) {
+              handleBlockMetaChange(inlineToolbar.blockId, { ...block.meta, align });
+            }
+          }}
         />
       )}
     </div>

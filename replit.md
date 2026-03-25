@@ -51,6 +51,7 @@ shared/
 - Block types: text, heading 1/2/3, bulleted list, numbered list, code, quote, callout, divider, table, image
 - Slash commands with categories (Basic + Advanced blocks)
 - Markdown shortcuts: # /## /### for headings, - /* for lists, > for quote, --- for divider, ``` for code
+- Block alignment: left, center, right via inline toolbar and block controls dropdown (stored in block.meta.align)
 - Inline formatting: Bold, italic, underline, strikethrough, code, highlight, links
 - Keyboard shortcuts: Ctrl+B/I/U/E/K, Ctrl+Shift+S/H, Ctrl+Z/Y
 - Smart list continuation (Enter continues list, empty Enter exits)
@@ -118,6 +119,7 @@ shared/
 ## Important Notes
 - Block content stored as raw HTML innerHTML (from contentEditable)
 - Blocks saved as JSONB array in PostgreSQL
+- Block alignment stored in block.meta.align ("left" | "center" | "right"), default "left"
 - Table data stored in block.meta.tableData as string[][]
 - Image data stored as base64 data URL in block.content
 - ContentEditable elements need `dir="ltr"` to prevent RTL rendering
