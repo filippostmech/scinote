@@ -309,11 +309,12 @@ export function BlockEditor({ blocks: initialBlocks, onChange }: BlockEditorProp
       }
       const newBlocks = blocks.map((b) => {
         if (b.id === slashMenu.blockId) {
+          const align = b.meta?.align || "left";
           if (type === "table") {
-            return { ...b, type, content: "", meta: { tableData: [["", "", ""], ["", "", ""], ["", "", ""]] } };
+            return { ...b, type, content: "", meta: { align, tableData: [["", "", ""], ["", "", ""], ["", "", ""]] } };
           }
           if (type === "image") {
-            return { ...b, type, content: "", meta: {} };
+            return { ...b, type, content: "", meta: { align } };
           }
           return { ...b, type, content: type === "divider" ? "" : cleanContent };
         }
