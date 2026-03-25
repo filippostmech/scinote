@@ -5,6 +5,7 @@ import { useRoute } from "wouter";
 import type { Document, Block, Project, Workspace } from "@shared/schema";
 import { BlockEditor } from "@/components/block-editor";
 import { Loader2, Download, FileText, ChevronDown, Clock } from "lucide-react";
+import { IconPicker } from "@/components/icon-picker";
 import { downloadMarkdown } from "@/lib/export";
 import {
   DropdownMenu,
@@ -73,6 +74,13 @@ export default function EditorPage() {
       saveTimeoutRef.current = setTimeout(() => {
         updateMutation.mutate({ title });
       }, 800);
+    },
+    [updateMutation],
+  );
+
+  const handleIconChange = useCallback(
+    (icon: string | null) => {
+      updateMutation.mutate({ icon });
     },
     [updateMutation],
   );
@@ -181,6 +189,7 @@ export default function EditorPage() {
                   value={doc.title}
                   onChange={handleTitleChange}
                   icon={doc.icon}
+                  onIconChange={handleIconChange}
                 />
               </div>
               <div className="flex items-center gap-1 mt-2 shrink-0 print:hidden">
@@ -287,10 +296,12 @@ function TitleInput({
   value,
   onChange,
   icon,
+  onIconChange,
 }: {
   value: string;
   onChange: (v: string) => void;
   icon?: string | null;
+  onIconChange?: (icon: string | null) => void;
 }) {
   const [localValue, setLocalValue] = useState(value === "Untitled" ? "" : value);
 
@@ -305,8 +316,10 @@ function TitleInput({
   };
 
   return (
-    <div className="mb-2">
-      {icon && <span className="text-5xl mb-4 block" data-testid="doc-icon">{icon}</span>}
+    <div className="mb-2 group/title">
+      {onIconChange && (
+        <IconPicker currentIcon={icon} onSelect={onIconChange} />
+      )}
       <input
         type="text"
         value={localValue}
